@@ -50,7 +50,7 @@ def run_agent(user_input: str, model: str, history: list | None = None, verbose:
         # Inject an architect prompt override if it's the first turn
         if not history:
             messages[0]["content"] = (system_prompt or SYSTEM_PROMPT) + "\n\nYou are in PLAN mood. Your job is to architect, reason, and create step-by-step plans. Do NOT write code or execute modifying tools."
-        active_tools = [t for t in TOOLS if t["function"]["name"] in ["read_file", "list_dir", "grep_search", "view_file"]]
+        active_tools = [t for t in TOOLS if getattr(t, "__name__", "") in ["read_file", "list_directory", "search_files", "todo_list"]]
     else:
         active_tools = TOOLS
 

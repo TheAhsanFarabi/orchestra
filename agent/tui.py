@@ -209,7 +209,7 @@ def _make_session(theme: Theme, state: dict | None = None) -> PromptSession:
         "auto-suggestion":
             f"#{theme.pt_dim} italic",
         "bottom-toolbar":
-            f"bg:#1e1e2e #{theme.pt_dim}",
+            f"bg:#{theme.pt_main} #000000",
     })
     
     def get_toolbar():
@@ -309,12 +309,12 @@ def _get_bottom_toolbar(state: dict) -> HTML:
             music_status = f"Paused ▄▃▂ "
     
     return HTML(
-        f" <style fg='{d}'>Model:</style> <b><style fg='{c}'>{model}</style></b>"
-        f"  <style fg='{d}'>Mode:</style> <b><style fg='{c}'>{mood}</style></b>"
-        f"  <style fg='{d}'>Tasks:</style> <b><style fg='{c}'>{pending}</style></b>"
-        f"  <style fg='{d}'>Goal:</style> <b><style fg='{c}'>{goal_status}</style></b>"
-        f"  <style fg='{d}'>Theme:</style> <b><style fg='{c}'>{theme.emoji} {theme.name}</style></b>"
-        f"  <style fg='{d}'>{music_status}</style>"
+        f" Model: <b>{model}</b>"
+        f"  |  Mode: <b>{mood}</b>"
+        f"  |  Tasks: <b>{pending}</b>"
+        f"  |  Goal: <b>{goal_status}</b>"
+        f"  |  Theme: <b>{theme.emoji} {theme.name}</b>"
+        f"  |  {music_status}"
     )
 
 
@@ -1075,7 +1075,7 @@ def run_tui(model: str | None = None, verbose: bool = False) -> None:
             "auto-suggestion":
                 f"#{theme.pt_dim} italic",
             "bottom-toolbar":
-                f"bg:#1e1e2e #{theme.pt_dim}",
+                f"bg:#{theme.pt_main} #000000",
         })
 
         def get_toolbar():

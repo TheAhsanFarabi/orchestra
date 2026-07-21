@@ -19,7 +19,14 @@ from .config import CONFIG_DIR
 # ── File paths ────────────────────────────────────────────────────────────────
 
 SKILL_FILE = CONFIG_DIR / "SKILL.md"
-GOALS_FILE = CONFIG_DIR / "GOALS.md"
+
+def get_goals_file() -> Path:
+    from .config import Config, SESSION_DIR
+    cfg = Config.load()
+    if cfg.active_session:
+        SESSION_DIR.mkdir(parents=True, exist_ok=True)
+        return SESSION_DIR / f"{cfg.active_session}_GOALS.md"
+    return CONFIG_DIR / "GOALS.md"
 
 # ── Default templates ─────────────────────────────────────────────────────────
 
@@ -87,10 +94,11 @@ class SkillsManager:
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         if not SKILL_FILE.exists():
             SKILL_FILE.write_text(SKILL_TEMPLATE)
-        if not GOALS_FILE.exists():
-            GOALS_FILE.write_text(GOALS_TEMPLATE)
+        goals_file = get_goals_file()
+        if not goals_file.exists():
+            goals_file.write_text(GOALS_TEMPLATE)
         self.skill_content = SKILL_FILE.read_text(errors="replace")
-        self.goals_content = GOALS_FILE.read_text(errors="replace")
+        self.goals_content = goals_file.read_text(errors="replace")
 
     def reload(self) -> None:
         """Re-read files from disk (e.g. after /goal set)."""
@@ -125,9 +133,10 @@ class SkillsManager:
 
     def set_active_goal(self, goal: str) -> None:
         """Replace the Active Goal section in GOALS.md and save."""
+        goals_file = get_goals_file()
         content = (
-            GOALS_FILE.read_text(errors="replace")
-            if GOALS_FILE.exists()
+            goals_file.read_text(errors="replace")
+            if goals_file.exists()
             else GOALS_TEMPLATE
         )
         new_section = f"## Active Goal\n{goal}\n"
@@ -140,7 +149,8 @@ class SkillsManager:
             )
         else:
             content += f"\n{new_section}"
-        GOALS_FILE.write_text(content)
+        goals_file = get_goals_file()
+        goals_file.write_text(content)
         self.goals_content = content
 
     def archive_active_goal(self) -> str:
@@ -176,7 +186,8 @@ class SkillsManager:
         else:
             content += f"\n## Completed Goals\n{entry}"
 
-        GOALS_FILE.write_text(content)
+        goals_file = get_goals_file()
+        goals_file.write_text(content)
         self.goals_content = content
         return active_text
 

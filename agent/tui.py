@@ -847,7 +847,7 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
             if target_hash == "all":
                 count = 0
                 if SESSION_DIR.exists():
-                    for target in SESSION_DIR.glob("*.json"):
+                    for target in list(SESSION_DIR.glob("*.json")) + list(SESSION_DIR.glob("*.md")):
                         target.unlink()
                         count += 1
                 
@@ -865,6 +865,9 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
                     todo_file = SESSION_DIR / f"{target_hash}_todo.json"
                     if todo_file.exists():
                         todo_file.unlink()
+                    goals_file = SESSION_DIR / f"{target_hash}_GOALS.md"
+                    if goals_file.exists():
+                        goals_file.unlink()
                     _info(f"Session '{target_hash}' has been deleted.", theme)
                     if cfg.active_session == target_hash:
                         import uuid

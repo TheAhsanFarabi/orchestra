@@ -19,7 +19,7 @@ MAX_ITERATIONS = 12
 MAX_TOOL_RETRIES = 1
 
 # Tools allowed in Plan mood (non-destructive only)
-PLAN_TOOLS = {"read_file", "list_directory", "search_files", "todo_add", "todo_done", "todo_list"}
+PLAN_TOOLS = {"read_file", "list_directory", "search_files", "tasks_add", "tasks_done", "tasks_list"}
 
 
 def _trim_context(messages: list[dict], context_limit: int = 32_768) -> list[dict]:
@@ -109,7 +109,7 @@ def run_agent(
             
             # Inject a silent reminder for this turn only so the LLM doesn't stop and wait
             if len(messages) > 0 and messages[-1]["role"] == "user":
-                messages[-1]["content"] += "\n\n(System Note: You must use todo_add to break this down now. Do not return plain text only. You must output tool calls.)"
+                messages[-1]["content"] += "\n\n(System Note: You must use tasks_add to break this down now. Do not return plain text only. You must output tool calls.)"
 
         response = chat(
             model=model,

@@ -19,7 +19,7 @@ MAX_ITERATIONS = 12
 MAX_TOOL_RETRIES = 1
 
 # Tools allowed in Plan mood (non-destructive only)
-PLAN_TOOLS = {"read_file", "list_directory", "search_files", "tasks_add", "tasks_done", "tasks_list"}
+PLAN_TOOLS = {"read_file", "list_directory", "search_files", "tasks_add", "tasks_list"}
 
 
 def _trim_context(messages: list[dict], context_limit: int = 32_768) -> list[dict]:

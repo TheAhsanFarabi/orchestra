@@ -110,6 +110,9 @@ def run_agent(
             # Inject a silent reminder for this turn only so the LLM doesn't stop and wait
             if len(messages) > 0 and messages[-1]["role"] == "user":
                 messages[-1]["content"] += "\n\n(System Note: You must use tasks_add to break this down now. Do not return plain text only. You must output tool calls.)"
+        elif mood == "action" and iteration == 0 and has_pending_tasks:
+            if len(messages) > 0 and messages[-1]["role"] == "user":
+                messages[-1]["content"] += "\n\n(System Note: You have pending tasks. You MUST use `tasks_done` when a step is finished, and `tasks_list` to check your remaining tasks. Do not respond with plain text without addressing the tasks!)"
 
         response = chat(
             model=model,
@@ -162,9 +165,15 @@ def run_agent(
             if on_tool_call:
                 on_tool_call(name, args, result)
 
+            result_str = str(result)
+            if mood == "action" and name not in ("tasks_add", "tasks_done", "tasks_list"):
+                t_list = TaskList.load()
+                if any(i.status == "pending" for i in t_list.items):
+                    result_str += "\n\n(System Note: You have pending tasks. If you just completed one, you MUST call `tasks_done` immediately. Do not speak to the user until you mark it done!)"
+
             messages.append({
                 "role": "tool",
-                "content": str(result),
+                "content": result_str,
             })
 
         # loop continues -> model sees tool results and decides next step

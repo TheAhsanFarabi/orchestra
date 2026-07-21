@@ -97,5 +97,5 @@ The output of these commands is silently added to the AI's context, so your very
 - **UI:** The TUI is powered by `prompt_toolkit` for history/autocomplete and `rich` for markdown rendering, panels, and live spinners.
 - **Skills:** Stored in `~/.orchestra/SKILL.md` and `GOALS.md`, allowing the system prompt to adapt to long-term user objectives dynamically.
 
-## 🤝 Contributing
+## Contributing
 Contributions are welcome! Whether it's adding new tools (like Git integration), improving the UI, or optimizing the LLM prompts, feel free to open a Pull Request.

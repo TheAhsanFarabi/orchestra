@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="assets/icon.png" alt="Orchestra Icon" width="100"/>
   <h1>Orchestra</h1>
   <p><i>A beautifully crafted, privacy-first, local AI agent powered by Ollama.</i></p>
   

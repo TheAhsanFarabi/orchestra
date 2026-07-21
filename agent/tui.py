@@ -327,16 +327,28 @@ def _make_logo(terminal_width: int = 100) -> str:
     except Exception:
         return "  O R C H E S T R A"
 
-def _render_icon(path: str = "assets/icon.png", width: int = 16, height: int = 8) -> Text:
+def _render_icon(theme: Theme | None = None, path: str = "assets/icon.png", width: int = 16, height: int = 8) -> Text:
     try:
         from PIL import Image
         img = Image.open(path).resize((width, height * 2), Image.Resampling.LANCZOS).convert("RGBA")
         pixels = img.load()
         text = Text()
+        
+        if theme:
+            tr = int(theme.pt_main[:2], 16)
+            tg = int(theme.pt_main[2:4], 16)
+            tb = int(theme.pt_main[4:6], 16)
+            
         for y in range(0, height * 2, 2):
             for x in range(width):
                 r1, g1, b1, a1 = pixels[x, y]
                 r2, g2, b2, a2 = pixels[x, y + 1]
+                
+                if theme:
+                    brightness1 = (r1 + g1 + b1) / (3 * 255.0)
+                    r1, g1, b1 = int(tr * brightness1), int(tg * brightness1), int(tb * brightness1)
+                    brightness2 = (r2 + g2 + b2) / (3 * 255.0)
+                    r2, g2, b2 = int(tr * brightness2), int(tg * brightness2), int(tb * brightness2)
                 
                 c1 = f"rgb({r1},{g1},{b1})" if a1 > 127 else "default"
                 c2 = f"rgb({r2},{g2},{b2})" if a2 > 127 else "default"
@@ -357,7 +369,7 @@ def print_banner(theme: Theme, model: str) -> None:
     from rich.console import Group
 
     logo_text = Text(_make_logo(console.width), style=f"bold #{theme.pt_main}")
-    icon = _render_icon()
+    icon = _render_icon(theme=theme)
 
     quotes = [
         "“The best way to predict the future is to invent it.” – Alan Kay",

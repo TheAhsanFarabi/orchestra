@@ -10,7 +10,7 @@ Slash commands:
   /help          Show all commands
   /model         Switch Ollama model
   /fast          Switch to fastest CPU model
-  /mood          Cycle through Action, Plan, and Chat modes
+  /mode          Cycle through Action, Plan, and Chat modes
   /add           Inject file into context
   /session       Manage chat sessions
   /todo          Manage the todo list
@@ -18,7 +18,7 @@ Slash commands:
   /skills        Show ~/.orchestra/SKILL.md
   /clear         Clear conversation
   /tools         List available tools
-  /memory        Show context window usage
+  /context       Show context window usage
   /settings      View active configuration
   /about         View information about Orchestra
   /exit          Quit Orchestra
@@ -106,14 +106,14 @@ SLASH_COMMANDS: dict[str, str] = {
     "/help":         "Show this help",
     "/model":        "Switch model  —  /model <name>",
     "/fast":         "Instantly switch to the fastest CPU-optimized model",
-    "/mood":         "Cycle between Action, Plan, and Chat modes",
+    "/mode":         "Cycle between Action, Plan, and Chat modes",
     "/add":          "Inject a file's content into AI context  —  /add <file>",
     "/session":      "Manage chat sessions  —  /session [list|new|delete|<hash>]",
     "/todo":         "Manage your todo list",
     "/goal":         "Manage your overarching goal",
     "/clear":        "Clear conversation",
     "/tools":        "List available tools",
-    "/memory":       "Show context usage map",
+    "/context":      "Show context usage map",
     "/settings":     "View current configuration settings",
     "/about":        "Show information about Orchestra",
     "/exit":         "Quit Orchestra",
@@ -258,7 +258,7 @@ def _get_bottom_toolbar(state: dict) -> HTML:
     c = f"#{theme.pt_main}"
     return HTML(
         f" Model: <b><style fg='{c}'>{model}</style></b> | "
-        f"Mood: <b><style fg='{c}'>{mood}</style></b> | "
+        f"Mode: <b><style fg='{c}'>{mood}</style></b> | "
         f"Tasks: <b><style fg='{c}'>{pending}</style></b> pending | "
         f"Goal: <b><style fg='{c}'>{goal_status}</style></b> | "
         f"Music: <b><style fg='{c}'>{music}</style></b> "
@@ -640,8 +640,8 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
         memory.save(SESSION_DIR / f"{cfg.active_session}.json")
         _info("Conversation history cleared.", theme)
 
-    # ── memory ────────────────────────────────────────────────────────────
-    elif cmd == "/memory":
+    # ── context ───────────────────────────────────────────────────────────
+    elif cmd == "/context":
         if arg.lower() in ("clear", "reset"):
             memory.reset()
             memory.save(SESSION_DIR / f"{cfg.active_session}.json")
@@ -788,8 +788,8 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
         )
         console.print(Panel(about_text, title=f"[{theme.accent}]About[/]", border_style=theme.border))
 
-    # ── mood ──────────────────────────────────────────────────────────────
-    elif cmd == "/mood":
+    # ── mode ──────────────────────────────────────────────────────────────
+    elif cmd == "/mode":
         current = state.get("mood", "action")
         if current == "action":
             new_mood = "plan"
@@ -798,7 +798,7 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
         else:
             new_mood = "action"
         state["mood"] = new_mood
-        _info(f"Mood switched to: [bold {theme.accent}]{new_mood.upper()}[/]", theme)
+        _info(f"Mode switched to: [bold {theme.accent}]{new_mood.upper()}[/]", theme)
 
     # ── fast ──────────────────────────────────────────────────────────────
     elif cmd == "/fast":

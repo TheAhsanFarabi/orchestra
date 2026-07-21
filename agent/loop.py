@@ -134,7 +134,8 @@ def run_agent(
                 if any(i.status == "pending" for i in t_list.items):
                     prev_user = messages[-2] if len(messages) >= 2 else {}
                     if not ("System Auto-Intercept:" in str(prev_user.get("content", ""))):
-                        intercept = "System Auto-Intercept: You returned a text response but there are still pending tasks. If you just finished a step, you MUST call `tasks_done`. Do not just narrate your intentions in text—actually output the tool call."
+                        pending_ids = [i.id for i in t_list.items if i.status == "pending"]
+                        intercept = f"System Auto-Intercept: You returned a text response but there are still pending tasks {pending_ids}. If you just finished a step, you MUST call `tasks_done` with the correct ID. Do not narrate your intentions in text—actually output the tool call."
                         messages.append({"role": "user", "content": intercept})
                         continue
 
@@ -183,8 +184,9 @@ def run_agent(
             result_str = str(result)
             if mood == "action" and name not in ("tasks_add", "tasks_done", "tasks_list"):
                 t_list = TaskList.load()
-                if any(i.status == "pending" for i in t_list.items):
-                    result_str += "\n\n(System Note: You have pending tasks. If you just completed one, you MUST call `tasks_done` immediately. Do not speak to the user until you mark it done!)"
+                pending_ids = [i.id for i in t_list.items if i.status == "pending"]
+                if pending_ids:
+                    result_str += f"\n\n(System Note: You have pending tasks {pending_ids}. If you just completed one, you MUST call `tasks_done` immediately. Do not speak to the user until you mark it done!)"
 
             messages.append({
                 "role": "tool",

@@ -176,12 +176,21 @@ def tasks_done(task_id: int) -> str:
     item = t._get(task_id)
     if not item:
         return f"Error: task #{task_id} does not exist."
+        
+    msg = ""
     if item.status == "done":
-        return f"Task #{task_id} is already marked as done."
-    if t.complete(task_id):
+        msg = f"Task #{task_id} is already marked as done."
+    elif t.complete(task_id):
         t.save()
-        return f"Marked #{task_id} as done: {item.text}"
-    return f"Error: could not complete task #{task_id}."
+        msg = f"Marked #{task_id} as done: {item.text}"
+    else:
+        return f"Error: could not complete task #{task_id}."
+        
+    pending = [i.id for i in t.items if i.status == "pending"]
+    if pending:
+        msg += f"\nNote: You still have pending tasks: {pending}. Use tasks_done on them when finished, or tasks_list to see details."
+        
+    return msg
 
 
 def tasks_list() -> str:

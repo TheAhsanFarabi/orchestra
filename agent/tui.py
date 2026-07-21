@@ -31,6 +31,13 @@ from typing import Any
 
 import pyfiglet
 
+try:
+    import pygame
+    pygame.mixer.init()
+    _pygame_available = True
+except Exception:
+    _pygame_available = False
+
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -80,6 +87,7 @@ SLASH_COMMANDS: dict[str, str] = {
     "/session":      "Manage chat sessions  —  /session [list|new|delete|<hash>]",
     "/todo":         "Manage your todo list",
     "/goal":         "Manage your overarching goal",
+    "/music":        "Toggle background music",
     "/clear":        "Clear conversation",
     "/tools":        "List available tools",
     "/memory":       "Show context usage map",
@@ -146,7 +154,7 @@ def _tui_confirm(req: PermissionRequest) -> bool:
 
 # ── prompt_toolkit session ────────────────────────────────────────────────────
 
-def _make_session(theme: Theme) -> PromptSession:
+def _make_session(theme: Theme, state: dict | None = None) -> PromptSession:
     completer = WordCompleter(list(SLASH_COMMANDS.keys()), sentence=True)
     pt_style  = PTStyle.from_dict({
         "completion-menu.completion":
@@ -155,13 +163,21 @@ def _make_session(theme: Theme) -> PromptSession:
             f"bg:#{theme.pt_main} #1e1e2e bold",
         "auto-suggestion":
             f"#{theme.pt_dim} italic",
+        "bottom-toolbar":
+            f"bg:#1e1e2e #{theme.pt_dim}",
     })
+    
+    def get_toolbar():
+        if not state: return None
+        return _get_bottom_toolbar(state)
+
     return PromptSession(
         history             = FileHistory(str(HISTORY_FILE)),
         auto_suggest        = AutoSuggestFromHistory(),
         completer           = completer,
         style               = pt_style,
         complete_while_typing = True,
+        bottom_toolbar      = get_toolbar,
     )
 
 
@@ -172,6 +188,34 @@ def _prompt_html(model: str, theme: Theme) -> HTML:
         f"<b><style fg='{c}'>you</style></b>"
         f" <style fg='{m}'>({model})</style>"
         f" <b><style fg='{c}'>›</style></b> "
+    )
+
+
+def _get_bottom_toolbar(state: dict) -> HTML:
+    model = state["cfg"].model
+    mood = state["mood"].capitalize()
+    
+    try:
+        todo = TodoList.load()
+        pending = sum(1 for i in todo.items if i.status == "pending")
+        goal_status = "Active" if todo.goal else "None"
+    except Exception:
+        pending = 0
+        goal_status = "None"
+        
+    if _pygame_available and pygame.mixer.music.get_busy():
+        music = "♫ Playing"
+    else:
+        music = "Paused"
+        
+    theme = state["cfg"].current_theme
+    c = f"#{theme.pt_main}"
+    return HTML(
+        f" Model: <b><style fg='{c}'>{model}</style></b> | "
+        f"Mood: <b><style fg='{c}'>{mood}</style></b> | "
+        f"Tasks: <b><style fg='{c}'>{pending}</style></b> pending | "
+        f"Goal: <b><style fg='{c}'>{goal_status}</style></b> | "
+        f"Music: <b><style fg='{c}'>{music}</style></b> "
     )
 
 
@@ -534,6 +578,26 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
         else:
             print_memory(memory, theme, cfg.context_limit)
 
+    # ── music ─────────────────────────────────────────────────────────────
+    elif cmd == "/music":
+        if not _pygame_available:
+            _warn("Music feature is unavailable. Please install pygame: pip install pygame", theme)
+        else:
+            if pygame.mixer.music.get_busy():
+                pygame.mixer.music.stop()
+                _info("Background music stopped.", theme)
+            else:
+                music_file = Path("lofi.mp3")
+                if music_file.exists():
+                    try:
+                        pygame.mixer.music.load(str(music_file))
+                        pygame.mixer.music.play(loops=-1)
+                        _info("Playing ambient background music...", theme)
+                    except Exception as e:
+                        _error(f"Could not play music: {e}", theme)
+                else:
+                    _warn("No 'lofi.mp3' found in the current directory.", theme)
+
     # ── todo ──────────────────────────────────────────────────────────────
     elif cmd == "/todo":
         sub_parts = arg.split(maxsplit=1)
@@ -758,7 +822,6 @@ def run_tui(model: str | None = None, verbose: bool = False) -> None:
     skills_manager.load()
 
     theme   = cfg.current_theme
-    session = _make_session(theme)
 
     print_banner(theme, cfg.model)
 
@@ -774,11 +837,14 @@ def run_tui(model: str | None = None, verbose: bool = False) -> None:
         "cfg":           cfg,
         "memory":        memory,
         "verbose":       verbose,
-        "session":       session,
+        "session":       None,
         "system_prompt": skills_manager.build_system_prompt(),
         "mood":          "action",
         "context_buffer": "",
     }
+    
+    session = _make_session(theme, state)
+    state["session"] = session
 
     # ── REPL ──────────────────────────────────────────────────────────────
     while True:

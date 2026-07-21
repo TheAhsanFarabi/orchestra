@@ -1,8 +1,8 @@
 """
-Orchestra TodoList.
+Orchestra TaskList.
 
-Persisted at ~/.orchestra/todo.json. Both the agent (via tool functions
-todo_add / todo_done / todo_list) and the user (via /todo slash commands)
+Persisted at ~/.orchestra/tasks.json. Both the agent (via tool functions
+tasks_add / tasks_done / tasks_list) and the user (via /tasks slash commands)
 can manage it.
 
 Status lifecycle:
@@ -20,12 +20,12 @@ from typing import Literal
 
 from .config import CONFIG_DIR, Config, SESSION_DIR
 
-def get_todo_file() -> Path:
+def get_tasks_file() -> Path:
     cfg = Config.load()
     if cfg.active_session:
         SESSION_DIR.mkdir(parents=True, exist_ok=True)
-        return SESSION_DIR / f"{cfg.active_session}_todo.json"
-    return CONFIG_DIR / "todo.json"
+        return SESSION_DIR / f"{cfg.active_session}_tasks.json"
+    return CONFIG_DIR / "tasks.json"
 
 # ── Display constants ─────────────────────────────────────────────────────────
 
@@ -47,7 +47,7 @@ STATUS_STYLE: dict[str, str] = {
 # ── Data model ────────────────────────────────────────────────────────────────
 
 @dataclass
-class TodoItem:
+class TaskItem:
     id:           int
     text:         str
     status:       Literal["pending", "in_progress", "done", "failed"] = "pending"
@@ -56,19 +56,19 @@ class TodoItem:
 
 
 @dataclass
-class TodoList:
+class TaskList:
     goal:  str            = ""
-    items: list[TodoItem] = field(default_factory=list)
+    items: list[TaskItem] = field(default_factory=list)
 
     # ── Mutation ──────────────────────────────────────────────────────────
 
-    def add(self, text: str) -> TodoItem:
+    def add(self, text: str) -> TaskItem:
         next_id = (max(i.id for i in self.items) + 1) if self.items else 1
-        item    = TodoItem(id=next_id, text=text)
+        item    = TaskItem(id=next_id, text=text)
         self.items.append(item)
         return item
 
-    def _get(self, item_id: int) -> TodoItem | None:
+    def _get(self, item_id: int) -> TaskItem | None:
         """Find item by its unique id."""
         for item in self.items:
             if item.id == item_id:
@@ -109,7 +109,7 @@ class TodoList:
     # ── Persistence ───────────────────────────────────────────────────────
 
     def save(self) -> None:
-        p = get_todo_file()
+        p = get_tasks_file()
         p.parent.mkdir(parents=True, exist_ok=True)
         data = {
             "goal":  self.goal,
@@ -118,18 +118,18 @@ class TodoList:
         p.write_text(json.dumps(data, indent=2))
 
     @classmethod
-    def load(cls) -> "TodoList":
-        p = get_todo_file()
+    def load(cls) -> "TaskList":
+        p = get_tasks_file()
         if not p.exists():
             return cls()
         try:
             data  = json.loads(p.read_text())
-            items = [TodoItem(**i) for i in data.get("items", [])]
+            items = [TaskItem(**i) for i in data.get("items", [])]
             return cls(goal=data.get("goal", ""), items=items)
         except Exception:
             return cls()
 
-    # ── Plain-text summary (used by todo_list tool) ───────────────────────
+    # ── Plain-text summary (used by tasks_list tool) ───────────────────────
 
     def summary(self) -> str:
         if not self.items:
@@ -148,8 +148,8 @@ class TodoList:
 
 # ── Agent-facing tool functions ───────────────────────────────────────────────
 
-def todo_add(item: str) -> str:
-    """Add a new task to the todo list.
+def tasks_add(item: str) -> str:
+    """Add a new task to the tasks list.
 
     Args:
         item: Description of the task to add.
@@ -157,22 +157,22 @@ def todo_add(item: str) -> str:
     Returns:
         Confirmation with the assigned task number.
     """
-    t        = TodoList.load()
+    t        = TaskList.load()
     new_item = t.add(item)
     t.save()
-    return f"Added todo #{new_item.id}: {item}"
+    return f"Added task #{new_item.id}: {item}"
 
 
-def todo_done(task_id: int) -> str:
-    """Mark a todo task as completed by its ID.
+def tasks_done(task_id: int) -> str:
+    """Mark a task as completed by its ID.
 
     Args:
-        task_id: The ID of the task shown in /todo.
+        task_id: The ID of the task shown in /tasks.
 
     Returns:
         Confirmation or error message.
     """
-    t = TodoList.load()
+    t = TaskList.load()
     if t.complete(task_id):
         item = t._get(task_id)
         t.save()
@@ -180,10 +180,10 @@ def todo_done(task_id: int) -> str:
     return f"Error: could not complete task #{task_id} (check the ID or status)."
 
 
-def todo_list() -> str:
-    """Return the current todo list as plain text.
+def tasks_list() -> str:
+    """Return the current tasks list as plain text.
 
     Returns:
         Numbered list of tasks with status icons, or a message if empty.
     """
-    return TodoList.load().summary()
+    return TaskList.load().summary()

@@ -13,7 +13,7 @@ import json
 from typing import Callable, Any
 from ollama import chat
 from .tools import TOOLS, TOOL_REGISTRY
-from .todo import TodoList
+from .tasks import TaskList
 
 MAX_ITERATIONS = 12
 MAX_TOOL_RETRIES = 1
@@ -97,8 +97,8 @@ def run_agent(
     # Trim context if it exceeds the limit
     messages = _trim_context(messages, context_limit)
 
-    # Load current todo state to see if we are already mid-plan
-    has_pending_tasks = any(i.status == "pending" for i in TodoList.load().items)
+    # Load current tasks state to see if we are already mid-plan
+    has_pending_tasks = any(i.status == "pending" for i in TaskList.load().items)
 
     for iteration in range(MAX_ITERATIONS):
         current_tools = active_tools

@@ -6,7 +6,7 @@ ollama-python inspects these to auto-generate the JSON schema the model sees,
 so keep the docstring and type hints accurate and descriptive.
 
 Read-only tools (no approval):
-    read_file, list_directory, search_files, todo_list
+    read_file, list_directory, search_files, tasks_list
 
 Write tools (yellow-border approval panel):
     write_file, append_file, create_directory, move_file
@@ -14,8 +14,8 @@ Write tools (yellow-border approval panel):
 Dangerous tools (red-border approval panel):
     delete_path, run_bash
 
-Todo tools (no approval, write to ~/.orchestra/todo.json):
-    todo_add, todo_done, todo_list
+Task tools (no approval, write to ~/.orchestra/tasks.json):
+    tasks_add, tasks_done, tasks_list
 """
 
 from __future__ import annotations
@@ -379,7 +379,7 @@ def run_bash(command: str, cwd: str = ".") -> str:
 # ── Todo tool shims ───────────────────────────────────────────────────────────
 # Imported here so they live in TOOL_REGISTRY alongside the file tools.
 
-from .todo import todo_add, todo_done, todo_list  # noqa: E402
+from .tasks import tasks_add, tasks_done, tasks_list  # noqa: E402
 
 
 # ── Registry ──────────────────────────────────────────────────────────────────
@@ -398,9 +398,9 @@ TOOL_REGISTRY: dict[str, object] = {
     "delete_path":      delete_path,
     "run_bash":         run_bash,
     # Todo (no approval)
-    "todo_add":         todo_add,
-    "todo_done":        todo_done,
-    "todo_list":        todo_list,
+    "tasks_add":         tasks_add,
+    "tasks_done":        tasks_done,
+    "tasks_list":        tasks_list,
 }
 
 # List passed straight to ollama's tools= param.

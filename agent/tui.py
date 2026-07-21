@@ -13,7 +13,7 @@ Slash commands:
   /mode          Cycle through Action, Plan, and Chat modes
   /add           Inject file into context
   /session       Manage chat sessions
-  /todo          Manage the todo list
+  /tasks          Manage the tasks list
   /goal          Show or set the active goal
   /skills        Show ~/.orchestra/SKILL.md
   /clear         Clear conversation
@@ -86,7 +86,7 @@ from .tools import TOOL_REGISTRY
 from .memory import MemoryLayer
 from .permissions import PermissionRequest, permission_manager
 from .skills import skills_manager
-from .todo import TodoList, STATUS_ICON, STATUS_STYLE
+from .tasks import TaskList, STATUS_ICON, STATUS_STYLE
 from .config import (
     Config, Theme, THEMES, THEME_KEYS, DEFAULT_THEME,
     HISTORY_FILE, SESSION_DIR, VERSION,
@@ -109,7 +109,7 @@ SLASH_COMMANDS: dict[str, str] = {
     "/mode":         "Cycle between Action, Plan, and Chat modes",
     "/add":          "Inject a file's content into AI context  —  /add <file>",
     "/session":      "Manage chat sessions  —  /session [list|new|delete|<hash>]",
-    "/todo":         "Manage your todo list",
+    "/tasks":         "Manage your tasks list",
     "/goal":         "Manage your overarching goal",
     "/clear":        "Clear conversation",
     "/tools":        "List available tools",
@@ -239,9 +239,9 @@ def _get_bottom_toolbar(state: dict) -> HTML:
     mood = state["mood"].capitalize()
     
     try:
-        todo = TodoList.load()
-        pending = sum(1 for i in todo.items if i.status == "pending")
-        goal_status = "Active" if todo.goal else "None"
+        tasks = TodoList.load()
+        pending = sum(1 for i in tasks.items if i.status == "pending")
+        goal_status = "Active" if tasks.goal else "None"
     except Exception:
         pending = 0
         goal_status = "None"
@@ -454,20 +454,20 @@ def print_memory(memory: MemoryLayer, theme: Theme, context_limit: int = 32_768)
     )
 
 
-# ── /todo ─────────────────────────────────────────────────────────────────────
+# ── /tasks ─────────────────────────────────────────────────────────────────────
 
-def print_todo(todo: TodoList, theme: Theme) -> None:
-    goal_text = todo.goal if todo.goal else "(no goal set — use /goal set <text>)"
+def print_tasks(todo: TodoList, theme: Theme) -> None:
+    goal_text = tasks.goal if tasks.goal else "(no goal set — use /goal set <text>)"
 
     tbl = Table(
         box=box.SIMPLE_HEAD, border_style="dim",
-        header_style=theme.accent, show_header=bool(todo.items),
+        header_style=theme.accent, show_header=bool(tasks.items),
     )
     tbl.add_column("#",      style="dim", width=4,  no_wrap=True)
     tbl.add_column("Status", width=14,              no_wrap=True)
     tbl.add_column("Task")
 
-    for item in todo.items:
+    for item in tasks.items:
         icon   = STATUS_ICON[item.status]
         istyle = STATUS_STYLE[item.status]
         tbl.add_row(
@@ -476,9 +476,9 @@ def print_todo(todo: TodoList, theme: Theme) -> None:
             item.text,
         )
 
-    done = sum(1 for x in todo.items if x.status == "done")
-    ip   = sum(1 for x in todo.items if x.status == "in_progress")
-    pend = sum(1 for x in todo.items if x.status == "pending")
+    done = sum(1 for x in tasks.items if x.status == "done")
+    ip   = sum(1 for x in tasks.items if x.status == "in_progress")
+    pend = sum(1 for x in tasks.items if x.status == "pending")
 
     footer = Text.assemble(
         (f"  {done} done",         "green"),
@@ -486,21 +486,21 @@ def print_todo(todo: TodoList, theme: Theme) -> None:
         (f"{ip} in progress",       "cyan"),
         ("  ·  ",                   "dim"),
         (f"{pend} pending",         "dim"),
-    ) if todo.items else Text("")
+    ) if tasks.items else Text("")
 
     body = Group(
         Text(f"  {goal_text}", style="dim italic"),
         Text(""),
-        tbl if todo.items
-            else Text("  (no tasks yet — use /todo add <text>)", style="dim"),
+        tbl if tasks.items
+            else Text("  (no tasks yet — use /tasks add <text>)", style="dim"),
         Text(""),
         footer,
         Text(""),
-        Text("  /todo add <text>  ·  /todo done <n>  ·  /todo clear", style="dim"),
+        Text("  /tasks add <text>  ·  /tasks done <n>  ·  /tasks clear", style="dim"),
         Text(""),
     )
     console.print(
-        Panel(body, title=f"[{theme.accent}]Todo List[/]",
+        Panel(body, title=f"[{theme.accent}]Task List[/]",
               border_style=theme.border, box=box.ROUNDED)
     )
 
@@ -651,43 +651,43 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
 
 
     # ── todo ──────────────────────────────────────────────────────────────
-    elif cmd == "/todo":
+    elif cmd == "/tasks":
         sub_parts = arg.split(maxsplit=1)
         sub       = sub_parts[0].lower() if sub_parts else ""
         sub_arg   = sub_parts[1].strip() if len(sub_parts) > 1 else ""
 
-        todo = TodoList.load()
+        tasks = TodoList.load()
 
         if not arg or sub == "list":
-            print_todo(todo, theme)
+            print_tasks(todo, theme)
 
         elif sub == "add":
             if not sub_arg:
-                _warn("Usage: /todo add <task description>", theme)
+                _warn("Usage: /tasks add <task description>", theme)
             else:
-                item = todo.add(sub_arg)
-                todo.save()
+                item = tasks.add(sub_arg)
+                tasks.save()
                 _info(f"Added task #{item.id}: {sub_arg}", theme)
 
         elif sub == "done":
             if sub_arg.isdigit():
                 n = int(sub_arg)
-                if todo.complete(n):
-                    item = todo._get(n)
-                    todo.save()
+                if tasks.complete(n):
+                    item = tasks._get(n)
+                    tasks.save()
                     _info(f"Marked #{n} done: {item.text if item else ''}", theme)
                 else:
                     _warn(f"Could not complete task #{n} — check number or status.", theme)
             else:
-                _warn("Usage: /todo done <number>", theme)
+                _warn("Usage: /tasks done <number>", theme)
 
         elif sub == "clear":
-            todo.clear_all()
-            todo.save()
+            tasks.clear_all()
+            tasks.save()
             _info("Todo list cleared.", theme)
 
         else:
-            _warn("Usage: /todo  |  /todo add <text>  |  /todo done <n>  |  /todo clear", theme)
+            _warn("Usage: /tasks  |  /tasks add <text>  |  /tasks done <n>  |  /tasks clear", theme)
 
     # ── goal ──────────────────────────────────────────────────────────────
     elif cmd == "/goal":
@@ -704,10 +704,10 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
             else:
                 skills_manager.set_active_goal(sub_arg)
                 state["system_prompt"] = skills_manager.build_system_prompt()
-                # Also store goal in todo list
-                todo = TodoList.load()
-                todo.goal = sub_arg
-                todo.save()
+                # Also store goal in tasks list
+                tasks = TodoList.load()
+                tasks.goal = sub_arg
+                tasks.save()
                 _info(f"Goal set: [{theme.accent}]{sub_arg}[/]", theme)
 
         elif sub == "done":
@@ -862,7 +862,7 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
                 target = SESSION_DIR / f"{target_hash}.json"
                 if target.exists():
                     target.unlink()
-                    todo_file = SESSION_DIR / f"{target_hash}_todo.json"
+                    todo_file = SESSION_DIR / f"{target_hash}_tasks.json"
                     if todo_file.exists():
                         todo_file.unlink()
                     goals_file = SESSION_DIR / f"{target_hash}_GOALS.md"

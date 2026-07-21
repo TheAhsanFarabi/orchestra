@@ -19,7 +19,7 @@ Powered entirely by [Ollama](https://ollama.com/), Orchestra operates directly o
 - **Built-in Terminal (`!`):** Run bash commands directly in the chat (e.g. `!git status`). The output is instantly displayed and seamlessly injected into the AI's memory.
 - **Context Injection (`/add`):** A blazing-fast, lightweight RAG alternative. Type `/add path/to/file.py` to instantly feed specific files into the AI's context window.
 - **Mood Switching (`/mood`):** Toggle between **Action Mode** (full tool execution) and **Plan Mode** (locked down, reasoning/architecting only).
-- **Persistent Memory & Goals:** Use `/goal` and `/todo` to track long-term tasks. Orchestra remembers your active goals across sessions.
+- **Persistent Memory & Goals:** Use `/goal` and `/tasks` to track long-term tasks. Orchestra remembers your active goals across sessions.
 - **Gorgeous TUI:** Built with `prompt_toolkit` and `rich`, featuring custom ASCII art, native syntax highlighting (Monokai), and an interactive context-window memory map.
 - **Permission Gate:** Dangerous actions are caught by a security gate, requiring your explicit `y/n` approval before execution.
 
@@ -76,7 +76,7 @@ Inside the Orchestra TUI, type `/` to access the command menu:
 | `/mood` | Toggle between **Action** and **Plan** mode |
 | `/add <file>` | Inject a specific file into the AI's context for the next prompt |
 | `/model <name>` | Switch the active Ollama model (e.g., `/model qwen2.5:1.5b`) |
-| `/todo` | View and manage your task list |
+| `/tasks` | View and manage your task list |
 | `/goal set <text>` | Set an overarching goal for the AI to focus on |
 | `/memory` | View your context window usage and a visual map of the conversation |
 | `/clear` | Clear the screen and reset the conversation history |

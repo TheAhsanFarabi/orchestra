@@ -129,6 +129,15 @@ def run_agent(
         messages.append(msg if isinstance(msg, dict) else msg.model_dump())
 
         if not tool_calls:
+            if mood == "action" and iteration < MAX_ITERATIONS - 1:
+                t_list = TaskList.load()
+                if any(i.status == "pending" for i in t_list.items):
+                    prev_user = messages[-2] if len(messages) >= 2 else {}
+                    if not ("System Auto-Intercept:" in str(prev_user.get("content", ""))):
+                        intercept = "System Auto-Intercept: You returned a text response but there are still pending tasks. If you just finished a step, you MUST call `tasks_done`. Do not just narrate your intentions in text—actually output the tool call."
+                        messages.append({"role": "user", "content": intercept})
+                        continue
+
             # Model gave a final answer -- done.
             return content, messages
 

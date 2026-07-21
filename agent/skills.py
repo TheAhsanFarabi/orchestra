@@ -1,0 +1,174 @@
+"""
+Orchestra Skills Manager.
+
+Loads ~/.orchestra/SKILL.md and ~/.orchestra/GOALS.md on TUI startup,
+creating them from built-in templates if they don't exist yet.
+
+The merged content is injected as the system prompt into run_agent(),
+giving the agent a persistent identity, tool awareness, and active goal.
+"""
+
+from __future__ import annotations
+
+import re
+from datetime import datetime
+from pathlib import Path
+
+from .config import CONFIG_DIR
+
+# ── File paths ────────────────────────────────────────────────────────────────
+
+SKILL_FILE = CONFIG_DIR / "SKILL.md"
+GOALS_FILE = CONFIG_DIR / "GOALS.md"
+
+# ── Default templates ─────────────────────────────────────────────────────────
+
+SKILL_TEMPLATE = """\
+# Orchestra Skills
+
+## Role
+You are Orchestra, a local privacy-first AI agent running entirely on the
+user's device. You work methodically, step by step, and always keep the user
+informed of your progress.
+
+## Available Tools
+- read_file, list_directory    — explore the filesystem (read-only, no approval)
+- write_file, append_file      — create and edit files  (requires user approval)
+- create_directory             — create folders         (requires user approval)
+- delete_path                  — delete files/dirs      (DANGEROUS, requires approval)
+- move_file                    — rename or move         (requires user approval)
+- run_bash                     — execute shell commands (DANGEROUS, requires approval)
+- search_files                 — grep-style search      (read-only, no approval)
+- todo_add, todo_done, todo_list — manage your task list (no approval needed)
+
+## Working Style
+1. Before starting any multi-step goal, call todo_list to check current tasks.
+2. Break the goal into small, concrete steps. Add each with todo_add.
+3. Work through steps one at a time. Mark each done with todo_done.
+4. Always explain your reasoning before calling a tool.
+5. If a tool returns an error, explain it clearly — do not blindly retry.
+6. When uncertain, ask the user rather than making assumptions.
+7. Respect user privacy — never exfiltrate data.
+"""
+
+GOALS_TEMPLATE = """\
+# Goals
+
+## Active Goal
+(none — use /goal set <description> to define a goal)
+
+## Completed Goals
+(none yet)
+"""
+
+
+# ── SkillsManager ─────────────────────────────────────────────────────────────
+
+class SkillsManager:
+    """
+    Loads SKILL.md and GOALS.md, creates them from templates if absent,
+    and builds the enriched system prompt injected into run_agent().
+    """
+
+    def __init__(self) -> None:
+        self.skill_content: str = SKILL_TEMPLATE
+        self.goals_content: str = GOALS_TEMPLATE
+
+    # ── Loading ───────────────────────────────────────────────────────────
+
+    def load(self) -> None:
+        """Read ~/.orchestra/SKILL.md and GOALS.md. Create from template if absent."""
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        if not SKILL_FILE.exists():
+            SKILL_FILE.write_text(SKILL_TEMPLATE)
+        if not GOALS_FILE.exists():
+            GOALS_FILE.write_text(GOALS_TEMPLATE)
+        self.skill_content = SKILL_FILE.read_text(errors="replace")
+        self.goals_content = GOALS_FILE.read_text(errors="replace")
+
+    def reload(self) -> None:
+        """Re-read files from disk (e.g. after /goal set)."""
+        self.load()
+
+    # ── System prompt ─────────────────────────────────────────────────────
+
+    def build_system_prompt(self) -> str:
+        """Return the merged system prompt (SKILL.md + GOALS.md)."""
+        return (
+            self.skill_content.strip()
+            + "\n\n---\n\n"
+            + self.goals_content.strip()
+        )
+
+    # ── Goal management ───────────────────────────────────────────────────
+
+    @property
+    def active_goal(self) -> str:
+        """Extract the active goal text from goals_content."""
+        m = re.search(r"## Active Goal\n(.*?)(?=\n## |\Z)", self.goals_content, re.DOTALL)
+        if m:
+            text = m.group(1).strip()
+            return text if not text.startswith("(none") else ""
+        return ""
+
+    def set_active_goal(self, goal: str) -> None:
+        """Replace the Active Goal section in GOALS.md and save."""
+        content = (
+            GOALS_FILE.read_text(errors="replace")
+            if GOALS_FILE.exists()
+            else GOALS_TEMPLATE
+        )
+        new_section = f"## Active Goal\n{goal}\n"
+        if re.search(r"^## Active Goal", content, re.MULTILINE):
+            content = re.sub(
+                r"## Active Goal\n.*?(?=\n## |\Z)",
+                new_section,
+                content,
+                flags=re.DOTALL,
+            )
+        else:
+            content += f"\n{new_section}"
+        GOALS_FILE.write_text(content)
+        self.goals_content = content
+
+    def archive_active_goal(self) -> str:
+        """Move Active Goal → Completed Goals. Returns the archived text."""
+        content = (
+            GOALS_FILE.read_text(errors="replace")
+            if GOALS_FILE.exists()
+            else GOALS_TEMPLATE
+        )
+        m = re.search(r"## Active Goal\n(.*?)(?=\n## |\Z)", content, re.DOTALL)
+        if not m:
+            return ""
+        active_text = m.group(1).strip()
+        if not active_text or active_text.startswith("(none"):
+            return ""
+
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        content  = re.sub(
+            r"## Active Goal\n.*?(?=\n## |\Z)",
+            "## Active Goal\n(none — use /goal set <description> to define a goal)\n",
+            content,
+            flags=re.DOTALL,
+        )
+        entry = f"- [{date_str}] {active_text}\n"
+        if "## Completed Goals" in content:
+            if "(none yet)" in content:
+                content = content.replace("(none yet)\n", entry)
+            else:
+                content = content.replace(
+                    "## Completed Goals\n",
+                    f"## Completed Goals\n{entry}",
+                )
+        else:
+            content += f"\n## Completed Goals\n{entry}"
+
+        GOALS_FILE.write_text(content)
+        self.goals_content = content
+        return active_text
+
+
+# ── Global singleton ──────────────────────────────────────────────────────────
+
+skills_manager = SkillsManager()

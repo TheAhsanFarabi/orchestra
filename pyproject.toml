@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "orchestra"
+version = "0.2.0"
+description = "A local, privacy-first AI agent powered by Ollama"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "ollama>=0.6",
+    "typer>=0.27",
+    "rich>=15",
+    "prompt_toolkit>=3",
+    "pyfiglet>=1",
+    "Pillow>=10.0",
+]
+
+[project.scripts]
+orchestra = "agent.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agent*"]

@@ -1,0 +1,78 @@
+"""
+Orchestra CLI entrypoint.
+
+Usage:
+    python -m agent.cli              # launch the rich TUI  (default)
+    python -m agent.cli tui          # launch the rich TUI  (explicit)
+    python -m agent.cli ask "..."    # one-shot question
+    python -m agent.cli chat         # plain multi-turn REPL
+    python -m agent.cli tui --model llama3.1:8b --verbose
+"""
+
+import typer
+from .loop import run_agent
+from .tui import run_tui
+from .config import Config
+
+app = typer.Typer(
+    add_completion=False,
+    help="Orchestra — a local, privacy-first AI agent powered by Ollama.",
+    invoke_without_command=True,
+)
+
+DEFAULT_MODEL = "qwen2.5:latest"
+
+
+@app.callback(invoke_without_command=True)
+def default(ctx: typer.Context) -> None:
+    """Launch the rich TUI when no subcommand is given."""
+    if ctx.invoked_subcommand is None:
+        run_tui()
+
+
+@app.command()
+def tui(
+    model:   str  = typer.Option(None,  "--model",   "-m", help="Ollama model to use."),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show tool calls and results."),
+) -> None:
+    """Launch the rich interactive TUI (default when no subcommand is given)."""
+    run_tui(model=model, verbose=verbose)
+
+
+@app.command()
+def ask(
+    question: str  = typer.Argument(...,   help="The question or task for the agent."),
+    model:    str  = typer.Option(DEFAULT_MODEL, "--model", "-m", help="Ollama model to use."),
+    verbose:  bool = typer.Option(False, "--verbose", "-v", help="Show tool calls and results."),
+) -> None:
+    """Ask the agent a single one-shot question."""
+    answer, _ = run_agent(question, model=model, verbose=verbose)
+    typer.echo(f"\n{answer}\n")
+
+
+@app.command()
+def chat(
+    model:   str  = typer.Option(DEFAULT_MODEL, "--model", "-m", help="Ollama model to use."),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show tool calls and results."),
+) -> None:
+    """Start a plain multi-turn chat session (no rich TUI)."""
+    typer.echo(f"Orchestra ready (model: {model}). Type 'exit' or Ctrl+C to quit.\n")
+    history = None
+
+    while True:
+        try:
+            user_input = typer.prompt("you")
+        except (EOFError, KeyboardInterrupt):
+            typer.echo("\nGoodbye.")
+            raise typer.Exit()
+
+        if user_input.strip().lower() in {"exit", "quit"}:
+            typer.echo("Goodbye.")
+            raise typer.Exit()
+
+        answer, history = run_agent(user_input, model=model, history=history, verbose=verbose)
+        typer.echo(f"orchestra: {answer}\n")
+
+
+if __name__ == "__main__":
+    app()

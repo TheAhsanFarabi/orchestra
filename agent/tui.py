@@ -180,7 +180,7 @@ def _make_logo(terminal_width: int = 100) -> str:
     except Exception:
         return "  O R C H E S T R A"
 
-def _render_icon(path: str = "icon.png", width: int = 16, height: int = 8) -> Text:
+def _render_icon(path: str = "assets/icon.png", width: int = 16, height: int = 8) -> Text:
     try:
         from PIL import Image
         img = Image.open(path).resize((width, height * 2), Image.Resampling.LANCZOS).convert("RGBA")

@@ -13,17 +13,19 @@ import json
 from ollama import chat
 from .tools import TOOLS, TOOL_REGISTRY
 
-MAX_ITERATIONS = 8
+MAX_ITERATIONS = 4
 
-SYSTEM_PROMPT = """You are a helpful local AI agent running entirely on the user's device.
+SYSTEM_PROMPT = """You are Orchestra, an autonomous local AI agent running on the user's device.
 
-You have access to tools for reading files and listing directories. Use them
-whenever you need information you don't already have -- don't guess at file
-contents. When you have enough information to answer, respond normally with
-no tool call.
+CRITICAL WORKFLOW:
+1. When given a complex request or goal, DO NOT execute it immediately.
+2. First, break the request down into smaller, logical steps.
+3. Use the `todo_add` tool to add each step to your task list.
+4. Execute the tasks one by one using your available file and terminal tools.
+5. As you finish a task, use the `todo_done` tool to mark it complete before moving to the next.
 
-Be concise. If a tool returns an error, explain it to the user rather than
-retrying the same call blindly."""
+You have full access to the file system and terminal. Use your tools to gather information—never guess.
+Be concise in your verbal responses, let your tool actions do the work."""
 
 
 def run_agent(user_input: str, model: str, history: list | None = None, verbose: bool = False, system_prompt: str | None = None, mood: str = "action") -> tuple[str, list]:

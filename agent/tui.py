@@ -72,6 +72,7 @@ _active_live: Live | None = None
 SLASH_COMMANDS: dict[str, str] = {
     "/help":         "Show this help",
     "/model":        "Switch model  —  /model <name>",
+    "/fast":         "Instantly switch to the fastest CPU-optimized model",
     "/mood":         "Toggle between Action (default) and Plan mode",
     "/add":          "Inject a file's content into AI context  —  /add <file>",
     "/session":      "Manage chat sessions  —  /session [list|new|<hash>]",
@@ -621,6 +622,12 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
         new_mood = "plan" if current == "action" else "action"
         state["mood"] = new_mood
         _info(f"Mood switched to: [bold {theme.accent}]{new_mood.upper()}[/]", theme)
+
+    # ── fast ──────────────────────────────────────────────────────────────
+    elif cmd == "/fast":
+        cfg.model = "qwen2.5:1.5b"
+        cfg.save()
+        _info(f"Fast mode engaged. Switched to [{theme.accent}]qwen2.5:1.5b[/]", theme)
 
     # ── add (Context Injection) ───────────────────────────────────────────
     elif cmd == "/add":

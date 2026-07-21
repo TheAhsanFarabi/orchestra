@@ -79,7 +79,7 @@ THEME_KEYS    = list(THEMES.keys())
 class Config:
     theme:         str  = DEFAULT_THEME
     welcomed:      bool = False
-    model:         str  = "qwen2.5:latest"
+    model:         str  = "qwen2.5:1.5b"
     context_limit: int  = 32_768
     active_session: str | None = None
 

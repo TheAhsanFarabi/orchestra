@@ -47,7 +47,7 @@ ollama pull qwen2.5:1.5b
 Clone the repository and set up a virtual environment:
 
 ```bash
-git clone https://github.com/your-username/orchestra.git
+git clone https://github.com/TheAhsanFarabi/orchestra.git
 cd orchestra
 
 # Create and activate a virtual environment

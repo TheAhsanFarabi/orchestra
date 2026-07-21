@@ -228,9 +228,11 @@ def _prompt_html(model: str, theme: Theme) -> HTML:
     c = f"#{theme.pt_main}"
     m = f"#{theme.pt_model}"
     return HTML(
+        f"<style fg='{c}'>[ </style>"
         f"<b><style fg='{c}'>you</style></b>"
         f" <style fg='{m}'>({model})</style>"
-        f" <b><style fg='{c}'>›</style></b> "
+        f"<style fg='{c}'> ]</style>"
+        f" <b><style fg='{c}'>&gt;</style></b> "
     )
 
 

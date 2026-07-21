@@ -957,7 +957,7 @@ def run_tui(model: str | None = None, verbose: bool = False) -> None:
                 _prompt_html(state["cfg"].model, theme)
             )
             # Print bottom border to complete the layout
-            console.print(f"[{theme.pt_main}]" + "─" * w + "[/]")
+            console.print(f"[#{theme.pt_main}]" + "─" * w + "[/]")
         except KeyboardInterrupt:
             console.print()
             continue

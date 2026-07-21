@@ -35,7 +35,7 @@ CRITICAL WORKFLOW:
 2. First, break the request down into smaller, logical steps.
 3. Use the `todo_add` tool to add each step to your task list.
 4. Execute the tasks one by one using your available file and terminal tools.
-5. As you finish a task, use the `todo_done` tool to mark it complete before moving to the next.
+5. IMPORTANT: As soon as you finish a task, you MUST use the `todo_done` tool to mark it complete. Do not forget this step!
 
 ## Available Tools
 - read_file, list_directory    — explore the filesystem (read-only, no approval)

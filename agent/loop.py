@@ -13,7 +13,7 @@ import json
 from ollama import chat
 from .tools import TOOLS, TOOL_REGISTRY
 
-MAX_ITERATIONS = 4
+MAX_ITERATIONS = 12
 
 SYSTEM_PROMPT = """You are Orchestra, an autonomous local AI agent running on the user's device.
 
@@ -22,7 +22,7 @@ CRITICAL WORKFLOW:
 2. First, break the request down into smaller, logical steps.
 3. Use the `todo_add` tool to add each step to your task list.
 4. Execute the tasks one by one using your available file and terminal tools.
-5. As you finish a task, use the `todo_done` tool to mark it complete before moving to the next.
+5. IMPORTANT: As soon as you finish a task, you MUST use the `todo_done` tool to mark it complete. Do not forget this step!
 
 You have full access to the file system and terminal. Use your tools to gather information—never guess.
 Be concise in your verbal responses, let your tool actions do the work."""

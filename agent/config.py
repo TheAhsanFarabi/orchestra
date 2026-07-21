@@ -17,7 +17,7 @@ from pathlib import Path
 CONFIG_DIR   = Path.home() / ".orchestra"
 CONFIG_FILE  = CONFIG_DIR / "config.json"
 HISTORY_FILE = CONFIG_DIR / "history"
-VERSION      = "0.2.0"
+VERSION      = "1.0.0"
 
 
 # ── Theme dataclass ───────────────────────────────────────────────────────────

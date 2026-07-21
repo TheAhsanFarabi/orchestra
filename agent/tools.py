@@ -376,7 +376,7 @@ def run_bash(command: str, cwd: str = ".") -> str:
         return f"Error running bash: {e}"
 
 
-# ── Todo tool shims ───────────────────────────────────────────────────────────
+# ── Task tool shims ───────────────────────────────────────────────────────────
 # Imported here so they live in TOOL_REGISTRY alongside the file tools.
 
 from .tasks import tasks_add, tasks_done, tasks_list  # noqa: E402
@@ -397,7 +397,7 @@ TOOL_REGISTRY: dict[str, object] = {
     # Dangerous (red-border approval)
     "delete_path":      delete_path,
     "run_bash":         run_bash,
-    # Todo (no approval)
+    # Task (no approval)
     "tasks_add":         tasks_add,
     "tasks_done":        tasks_done,
     "tasks_list":        tasks_list,

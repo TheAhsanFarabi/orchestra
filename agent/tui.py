@@ -684,7 +684,7 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
         elif sub == "clear":
             tasks.clear_all()
             tasks.save()
-            _info("Todo list cleared.", theme)
+            _info("Tasks list cleared.", theme)
 
         else:
             _warn("Usage: /tasks  |  /tasks add <text>  |  /tasks done <n>  |  /tasks clear", theme)

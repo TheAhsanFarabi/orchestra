@@ -26,7 +26,10 @@ Slash commands:
 
 from __future__ import annotations
 
+import math
 import time
+import random
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -92,6 +95,21 @@ from .config import (
     HISTORY_FILE, SESSION_DIR, VERSION,
 )
 
+# ── Prompt cycle counter (for tips) ──────────────────────────────────────────
+
+_prompt_cycle = 0
+
+TIPS = [
+    "Shift+Tab toggles lofi music",
+    "Use /mode to switch between Action, Plan, and Chat",
+    "Use /session new to start a fresh conversation",
+    "Prefix commands with ! to run them in the terminal",
+    "Use /fast for quick CPU-only responses",
+    "Use /add <file> to inject files into context",
+    "Use /theme to change the visual theme",
+    "Use /goal set <text> to set a persistent goal",
+]
+
 # ── Shared console ────────────────────────────────────────────────────────────
 
 console = Console()
@@ -107,6 +125,7 @@ SLASH_COMMANDS: dict[str, str] = {
     "/model":        "Switch model  —  /model <name>",
     "/fast":         "Instantly switch to the fastest CPU-optimized model",
     "/mode":         "Cycle between Action, Plan, and Chat modes",
+    "/theme":        "Change the visual theme  —  /theme [name]",
     "/add":          "Inject a file's content into AI context  —  /add <file>",
     "/session":      "Manage chat sessions  —  /session [list|new|delete|<hash>]",
     "/tasks":         "Manage your tasks list",
@@ -224,13 +243,39 @@ def _make_session(theme: Theme, state: dict | None = None) -> PromptSession:
     )
 
 
+def _gradient_rule(theme: Theme, width: int) -> str:
+    """Generate a gradient horizontal rule that glows from center."""
+    r = int(theme.pt_main[:2], 16)
+    g = int(theme.pt_main[2:4], 16)
+    b = int(theme.pt_main[4:6], 16)
+    chars = []
+    half = width // 2
+    for i in range(width):
+        dist = abs(i - half) / max(half, 1)
+        factor = max(0.2, 1.0 - dist * 0.8)
+        cr, cg, cb = int(r * factor), int(g * factor), int(b * factor)
+        chars.append(f"\033[38;2;{cr};{cg};{cb}m─\033[0m")
+    return "".join(chars)
+
+
 def _prompt_html(model: str, theme: Theme) -> HTML:
+    global _prompt_cycle
+    _prompt_cycle += 1
     c = f"#{theme.pt_main}"
-    import shutil
     w = shutil.get_terminal_size().columns
-    top = "─" * w
+
+    # Show a tip every 3rd prompt
+    if _prompt_cycle % 3 == 0:
+        tip = random.choice(TIPS)
+        label = f" 💡 {tip} "
+        pad = max(0, w - len(label)) // 2
+        top = "─" * pad + label + "─" * (w - pad - len(label))
+        top_html = f"<style fg='{c}'>{top}</style>"
+    else:
+        top_html = f"<style fg='{c}'>{'─' * w}</style>"
+
     return HTML(
-        f"<style fg='{c}'>{top}</style>\n"
+        f"{top_html}\n"
         f"<b><style fg='{c}'>&gt;</style></b> "
     )
 
@@ -247,22 +292,29 @@ def _get_bottom_toolbar(state: dict) -> HTML:
         pending = 0
         goal_status = "None"
         
-    if _pygame_available and pygame.mixer.music.get_busy():
-        import random
-        bars = [" ", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
-        eq = "".join(random.choice(bars) for _ in range(4))
-        music = f"♫ Playing {eq}"
-    else:
-        music = "Paused ▄▃▂ "
-        
     theme = state["cfg"].current_theme
     c = f"#{theme.pt_main}"
+    d = f"#{theme.pt_dim}"
+    
+    music_status = ""
+    if _pygame_available:
+        if pygame.mixer.music.get_busy():
+            t = time.time()
+            bars = "".join(
+                "▁▂▃▄▅▆▇█"[int((math.sin(t * 3 + i * 1.2) + 1) * 3.5)]
+                for i in range(5)
+            )
+            music_status = f"♫ Playing {bars}"
+        else:
+            music_status = f"Paused ▄▃▂ "
+    
     return HTML(
-        f" Model: <b><style fg='{c}'>{model}</style></b> | "
-        f"Mode: <b><style fg='{c}'>{mood}</style></b> | "
-        f"Tasks: <b><style fg='{c}'>{pending}</style></b> pending | "
-        f"Goal: <b><style fg='{c}'>{goal_status}</style></b> | "
-        f"Music: <b><style fg='{c}'>{music}</style></b> "
+        f" <style fg='{d}'>Model:</style> <b><style fg='{c}'>{model}</style></b>"
+        f"  <style fg='{d}'>Mode:</style> <b><style fg='{c}'>{mood}</style></b>"
+        f"  <style fg='{d}'>Tasks:</style> <b><style fg='{c}'>{pending}</style></b>"
+        f"  <style fg='{d}'>Goal:</style> <b><style fg='{c}'>{goal_status}</style></b>"
+        f"  <style fg='{d}'>Theme:</style> <b><style fg='{c}'>{theme.emoji} {theme.name}</style></b>"
+        f"  <style fg='{d}'>{music_status}</style>"
     )
 
 
@@ -457,6 +509,21 @@ def print_memory(memory: MemoryLayer, theme: Theme, context_limit: int = 32_768)
 
 # ── /tasks ─────────────────────────────────────────────────────────────────────
 
+def _progress_bar(done: int, total: int, width: int = 20, theme: Theme | None = None) -> Text:
+    """Render a compact progress bar."""
+    if total == 0:
+        return Text("")
+    filled = int((done / total) * width)
+    pct = int((done / total) * 100)
+    bar_style = "green" if pct == 100 else (theme.accent if theme else "cyan")
+    bar = Text()
+    bar.append("  ")
+    bar.append("█" * filled, style=bar_style)
+    bar.append("░" * (width - filled), style="dim")
+    bar.append(f" {pct}% complete ({done}/{total} tasks done)", style="dim")
+    return bar
+
+
 def print_tasks(tasks: TaskList, theme: Theme) -> None:
     goal_text = tasks.goal if tasks.goal else "(no goal set — use /goal set <text>)"
 
@@ -480,6 +547,7 @@ def print_tasks(tasks: TaskList, theme: Theme) -> None:
     done = sum(1 for x in tasks.items if x.status == "done")
     ip   = sum(1 for x in tasks.items if x.status == "in_progress")
     pend = sum(1 for x in tasks.items if x.status == "pending")
+    total = len(tasks.items)
 
     footer = Text.assemble(
         (f"  {done} done",         "green"),
@@ -489,12 +557,15 @@ def print_tasks(tasks: TaskList, theme: Theme) -> None:
         (f"{pend} pending",         "dim"),
     ) if tasks.items else Text("")
 
+    progress = _progress_bar(done, total, theme=theme) if tasks.items else Text("")
+
     body = Group(
         Text(f"  {goal_text}", style="dim italic"),
         Text(""),
         tbl if tasks.items
             else Text("  (no tasks yet — use /tasks add <text>)", style="dim"),
         Text(""),
+        progress,
         footer,
         Text(""),
         Text("  /tasks add <text>  ·  /tasks done <n>  ·  /tasks clear", style="dim"),
@@ -589,7 +660,19 @@ class AgentActivity:
         t = self._theme
         if self._live:
             self._live.stop()
-        console.print(f"  [{t.tool}]⚙ using \"{name}\" tool...[/]")
+
+        # Extract a brief summary from the result
+        summary = str(result).split('\n')[0][:80]
+        if str(result).startswith("OK") or str(result).startswith("Marked"):
+            icon, style = "✓", "green"
+        elif str(result).startswith("Error"):
+            icon, style = "✗", "red"
+        elif str(result).startswith("Task #"):
+            icon, style = "✓", "green"
+        else:
+            icon, style = "→", t.tool
+
+        console.print(f"  [{style}]{icon}[/] [{t.tool}]{name}[/] [dim]→ {summary}[/]")
         if self._live:
             self._live.start()
 
@@ -807,6 +890,40 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
         cfg.save()
         _info(f"Fast mode engaged. Switched to [{theme.accent}]qwen2.5:1.5b[/]", theme)
 
+    # ── theme ─────────────────────────────────────────────────────────────
+    elif cmd == "/theme":
+        if arg and arg.lower() in THEMES:
+            cfg.theme = arg.lower()
+            cfg.save()
+            new_theme = cfg.current_theme
+            # Rebuild the prompt_toolkit session with new theme colors
+            state["session"] = _make_session(new_theme, state)
+            _info(f"Theme switched to {new_theme.emoji} [{new_theme.accent}]{new_theme.name}[/]", new_theme)
+        else:
+            # Show interactive theme picker
+            tbl = Table(box=box.SIMPLE_HEAD, border_style="dim", header_style=theme.accent)
+            tbl.add_column("#", style="dim", width=3)
+            tbl.add_column("Theme", style="bold")
+            tbl.add_column("Description")
+            for i, (key, t) in enumerate(THEMES.items(), 1):
+                active = " ←" if key == cfg.theme else ""
+                tbl.add_row(str(i), f"{t.emoji} {t.name}{active}", t.description)
+            console.print(Panel(tbl, title=f"[{theme.accent}]Pick a Theme[/]", border_style=theme.border, box=box.ROUNDED))
+            
+            theme_keys = list(THEMES.keys())
+            choices = [str(i) for i in range(1, len(theme_keys) + 1)]
+            try:
+                choice = Prompt.ask("  Select theme number", choices=choices, show_choices=False)
+                if choice:
+                    selected = theme_keys[int(choice) - 1]
+                    cfg.theme = selected
+                    cfg.save()
+                    new_theme = cfg.current_theme
+                    state["session"] = _make_session(new_theme, state)
+                    _info(f"Theme switched to {new_theme.emoji} [{new_theme.accent}]{new_theme.name}[/]", new_theme)
+            except (EOFError, KeyboardInterrupt):
+                pass
+
     # ── add (Context Injection) ───────────────────────────────────────────
     elif cmd == "/add":
         if not arg:
@@ -956,8 +1073,8 @@ def run_tui(model: str | None = None, verbose: bool = False) -> None:
             user_input: str = state["session"].prompt(
                 _prompt_html(state["cfg"].model, theme)
             )
-            # Print bottom border to complete the layout
-            console.print(f"[#{theme.pt_main}]" + "─" * w + "[/]")
+            # Print gradient bottom border to complete the layout
+            print(_gradient_rule(theme, w), flush=True)
         except KeyboardInterrupt:
             console.print()
             continue
@@ -1004,6 +1121,34 @@ def run_tui(model: str | None = None, verbose: bool = False) -> None:
 
         history_in = memory.to_list() if not memory.is_empty else None
 
+        # Set up streaming response display
+        _stream_live: Live | None = None
+        _stream_started = False
+
+        def _on_stream(text: str) -> None:
+            nonlocal _stream_live, _stream_started
+            if not _stream_started:
+                _stream_started = True
+                try:
+                    body = Markdown(text, code_theme="monokai")
+                except Exception:
+                    body = Text(text)
+                _stream_live = Live(
+                    Panel(body, title=f"[{theme.accent}]orchestra[/]",
+                          border_style=theme.agent_border, box=box.ROUNDED, padding=(0, 1)),
+                    console=console, refresh_per_second=8, transient=False
+                )
+                _stream_live.start()
+            elif _stream_live:
+                try:
+                    body = Markdown(text, code_theme="monokai")
+                except Exception:
+                    body = Text(text)
+                _stream_live.update(
+                    Panel(body, title=f"[{theme.accent}]orchestra[/]",
+                          border_style=theme.agent_border, box=box.ROUNDED, padding=(0, 1))
+                )
+
         try:
             activity = AgentActivity(state["cfg"].model, theme)
             with activity:
@@ -1016,14 +1161,22 @@ def run_tui(model: str | None = None, verbose: bool = False) -> None:
                     mood          = state["mood"],
                     context_limit = state["cfg"].context_limit,
                     on_tool_call  = activity.on_tool_call,
+                    on_stream     = _on_stream,
                 )
             state["memory"] = MemoryLayer.from_list(new_msgs)
             state["memory"].save(SESSION_DIR / f"{state['cfg'].active_session}.json")
 
         except Exception as exc:
+            if _stream_live:
+                _stream_live.stop()
             _error(f"Agent error: {exc}", theme)
             console.print()
             continue
 
-        print_response(answer, theme)
+        if _stream_live:
+            _stream_live.stop()
+        
+        # If streaming didn't render, fall back to static render
+        if not _stream_started:
+            print_response(answer, theme)
         console.print()

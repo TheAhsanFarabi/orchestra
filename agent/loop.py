@@ -56,6 +56,7 @@ def run_agent(
     mood: str = "action",
     context_limit: int = 32_768,
     on_tool_call: Callable[[str, dict, str], None] | None = None,
+    on_stream: Callable[[str], None] | None = None,
 ) -> tuple[str, list]:
     """
     Run the agent loop for one user turn.
@@ -139,7 +140,26 @@ def run_agent(
                         messages.append({"role": "user", "content": intercept})
                         continue
 
-            # Model gave a final answer -- done.
+            # Model gave a final answer.
+            # If we have a streaming callback, re-generate this final response
+            # with streaming enabled so the TUI can render tokens progressively.
+            if on_stream and content:
+                # Remove the non-streamed assistant message we already appended
+                messages.pop()
+                try:
+                    streamed_content = ""
+                    for chunk in chat(model=model, messages=messages, stream=True):
+                        c_msg = chunk.get("message", {}) if isinstance(chunk, dict) else chunk.message
+                        token = c_msg.get("content", "") if isinstance(c_msg, dict) else (c_msg.content or "")
+                        streamed_content += token
+                        on_stream(streamed_content)
+                    # Re-append the complete assistant message
+                    messages.append({"role": "assistant", "content": streamed_content})
+                    return streamed_content, messages
+                except Exception:
+                    # Fallback: use the already-generated content
+                    messages.append({"role": "assistant", "content": content})
+                    return content, messages
             return content, messages
 
         # Execute each requested tool call

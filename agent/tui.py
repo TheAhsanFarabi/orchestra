@@ -75,10 +75,9 @@ SLASH_COMMANDS: dict[str, str] = {
     "/fast":         "Instantly switch to the fastest CPU-optimized model",
     "/mood":         "Toggle between Action (default) and Plan mode",
     "/add":          "Inject a file's content into AI context  —  /add <file>",
-    "/session":      "Manage chat sessions  —  /session [list|new|<hash>]",
+    "/session":      "Manage chat sessions  —  /session [list|new|delete|<hash>]",
     "/todo":         "Manage your todo list",
     "/goal":         "Manage your overarching goal",
-    "/history":      "View conversation history",
     "/clear":        "Clear conversation",
     "/tools":        "List available tools",
     "/memory":       "Show context usage map",
@@ -664,6 +663,22 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
             state["memory"] = MemoryLayer()
             state["memory"].save(SESSION_DIR / f"{new_hash}.json")
             _info(f"Started new session: {new_hash}", theme)
+        elif arg.startswith("delete "):
+            target_hash = arg.split(" ", 1)[1].strip()
+            target = SESSION_DIR / f"{target_hash}.json"
+            if target.exists():
+                target.unlink()
+                _info(f"Session '{target_hash}' has been deleted.", theme)
+                if cfg.active_session == target_hash:
+                    import uuid
+                    new_hash = uuid.uuid4().hex[:8]
+                    cfg.active_session = new_hash
+                    cfg.save()
+                    state["memory"].reset()
+                    state["memory"].save(SESSION_DIR / f"{new_hash}.json")
+                    _info(f"Active session deleted. Started a new session: {new_hash}", theme)
+            else:
+                _warn(f"Session not found: {target_hash}", theme)
         else:
             target = SESSION_DIR / f"{arg}.json"
             if target.exists():

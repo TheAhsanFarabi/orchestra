@@ -7,12 +7,12 @@
 
 ---
 
-## 🌟 Overview
+## Overview
 Orchestra is a local, terminal-native AI agent designed for developers who want the power of systems like Claude Code or Cursor, but demand **100% privacy** and zero cloud dependencies. 
 
 Powered entirely by [Ollama](https://ollama.com/), Orchestra operates directly on your machine. It can explore your codebase, reason about problems, execute bash commands, and write code—all within a stunning Terminal User Interface (TUI).
 
-## ✨ Features
+## Features
 
 - **100% Local & Private:** No API keys, no subscriptions, and your code never leaves your machine.
 - **Agentic Tool Loop:** Orchestra doesn't just chat. It uses tools to autonomously read files, list directories, and explore your codebase.
@@ -25,7 +25,7 @@ Powered entirely by [Ollama](https://ollama.com/), Orchestra operates directly o
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 1. **Python 3.10+** installed on your system.
@@ -60,7 +60,7 @@ pip install -e .
 
 ---
 
-## 🎮 Usage
+## Usage
 
 To start Orchestra, simply run:
 ```bash
@@ -92,7 +92,7 @@ The output of these commands is silently added to the AI's context, so your very
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 - **Core Loop:** The agent uses an iterative tool-call loop (`loop.py`) with a safety cutoff to prevent infinite hallucination loops.
 - **UI:** The TUI is powered by `prompt_toolkit` for history/autocomplete and `rich` for markdown rendering, panels, and live spinners.
 - **Skills:** Stored in `~/.orchestra/SKILL.md` and `GOALS.md`, allowing the system prompt to adapt to long-term user objectives dynamically.

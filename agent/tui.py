@@ -496,11 +496,29 @@ class AgentActivity:
 
     def __enter__(self) -> "AgentActivity":
         global _active_live
+        import random
         t = self._theme
+        
+        messages = [
+            "  consulting the digital oracles with ",
+            "  brewing some fresh ideas using ",
+            "  weaving algorithmic magic via ",
+            "  connecting the neural dots for ",
+            "  polishing the gigabytes using ",
+            "  asking the rubber duck about ",
+            "  bribing the CPU with electricity for ",
+            "  doing a little dance while pondering with ",
+            "  summoning clever solutions via ",
+            "  gathering stardust alongside ",
+            "  petting the server cat while using ",
+            "  crunching the numbers creatively with ",
+        ]
+        msg = random.choice(messages)
+        
         spinner = Spinner(
             "dots2",
             text=Text.assemble(
-                ("  thinking with ", "dim"),
+                (msg, "dim"),
                 (self._model,       t.accent),
                 ("...",             "dim"),
             ),

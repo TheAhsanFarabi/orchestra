@@ -9,7 +9,7 @@ First run:
 Slash commands:
   /help          Show all commands
   /model         Switch Ollama model
-  /fast          Switch to fastest CPU model
+  /fast          Switch to fast chat mode (no tools)
   /mood          Toggle Action / Plan mode
   /add           Inject file into context
   /session       Manage chat sessions
@@ -101,7 +101,7 @@ _active_live: Live | None = None
 SLASH_COMMANDS: dict[str, str] = {
     "/help":         "Show this help",
     "/model":        "Switch model  —  /model <name>",
-    "/fast":         "Instantly switch to the fastest CPU-optimized model",
+    "/fast":         "Instantly switch to fast chat mode (no tools, fastest model)",
     "/mood":         "Toggle between Action (default) and Plan mode",
     "/add":          "Inject a file's content into AI context  —  /add <file>",
     "/session":      "Manage chat sessions  —  /session [list|new|delete|<hash>]",
@@ -747,8 +747,9 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
     # ── fast ──────────────────────────────────────────────────────────────
     elif cmd == "/fast":
         cfg.model = "qwen2.5:1.5b"
+        state["mood"] = "chat"
         cfg.save()
-        _info(f"Fast mode engaged. Switched to [{theme.accent}]qwen2.5:1.5b[/]", theme)
+        _info(f"Fast Chat mode engaged! Switched to [{theme.accent}]qwen2.5:1.5b[/] with tools disabled.", theme)
 
     # ── add (Context Injection) ───────────────────────────────────────────
     elif cmd == "/add":

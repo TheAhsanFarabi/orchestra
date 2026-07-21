@@ -86,6 +86,9 @@ def run_agent(
         # Inject an architect prompt override
         messages[0]["content"] = effective_prompt + "\n\nYou are in PLAN mood. Your job is to architect, reason, and create step-by-step plans. Do NOT write code or execute modifying tools."
         active_tools = [t for t in TOOLS if getattr(t, "__name__", "") in PLAN_TOOLS]
+    elif mood == "chat":
+        messages[0]["content"] = effective_prompt + "\n\nYou are in CHAT mood. You do not have access to any tools. Respond quickly and directly to the user."
+        active_tools = []
     else:
         active_tools = TOOLS
 

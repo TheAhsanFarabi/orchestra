@@ -163,21 +163,21 @@ def todo_add(item: str) -> str:
     return f"Added todo #{new_item.id}: {item}"
 
 
-def todo_done(index: int) -> str:
-    """Mark a todo task as completed by its 1-based number.
+def todo_done(task_id: int) -> str:
+    """Mark a todo task as completed by its ID.
 
     Args:
-        index: The task number shown in /todo (1-based).
+        task_id: The ID of the task shown in /todo.
 
     Returns:
         Confirmation or error message.
     """
     t = TodoList.load()
-    if t.complete(index):
-        item = t._get(index)
+    if t.complete(task_id):
+        item = t._get(task_id)
         t.save()
-        return f"Marked #{index} as done: {item.text if item else ''}"
-    return f"Error: could not complete task #{index} (check the number or status)."
+        return f"Marked #{task_id} as done: {item.text if item else ''}"
+    return f"Error: could not complete task #{task_id} (check the ID or status)."
 
 
 def todo_list() -> str:

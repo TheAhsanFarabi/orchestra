@@ -35,7 +35,7 @@ CRITICAL WORKFLOW:
 2. First, break the request down into smaller, logical steps.
 3. Use the `todo_add` tool to add each step to your task list.
 4. Execute the tasks one by one using your available file and terminal tools.
-5. IMPORTANT: As soon as you finish a task, you MUST use the `todo_done` tool to mark it complete. Do not forget this step!
+5. IMPORTANT: As soon as you finish a task, you MUST use the `todo_done` tool to mark it complete. YOU MUST DO THIS BEFORE RESPONDING TO THE USER! Do not forget this step!
 6. SILENT TRACKING: Manage your todo list silently. When responding to the user, do not mention the todo list, goals, or tasks. Just provide a natural summary of the work you actually did.
 
 ## Available Tools

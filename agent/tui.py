@@ -337,6 +337,13 @@ def show_welcome(cfg: Config) -> Config:
     console.clear()
     print_banner(cfg.current_theme, cfg.model)
     
+    msg = "Thanks for choosing Orchestra! Your agentic journey begins now..."
+    for i in range(len(msg) + 1):
+        console.print(f"  [bold {cfg.current_theme.accent}]{msg[:i]}[/]", end="\r")
+        import time
+        time.sleep(0.03)
+    print("\n")
+    
     cfg.welcomed = True
     cfg.save()
     
@@ -731,19 +738,18 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
         if not arg:
             try:
                 import ollama
-                from prompt_toolkit.shortcuts import radiolist_dialog
                 list_resp = ollama.list()
                 models = [m.model for m in list_resp.models]
                 if not models:
                     _warn("No Ollama models found. Ensure Ollama is running.", theme)
                 else:
-                    choices = [(m, m) for m in models]
-                    result = radiolist_dialog(
-                        title="Select Ollama Model",
-                        text="Use UP/DOWN arrows to select, ENTER to confirm:",
-                        values=choices
-                    ).run()
-                    if result:
+                    _info("Available Models:", theme)
+                    for i, m in enumerate(models, 1):
+                        console.print(f"  [{theme.accent}]{i}.[/] {m}")
+                    
+                    choice = Prompt.ask("\n  Select model number", choices=[str(i) for i in range(1, len(models)+1)], show_choices=False)
+                    if choice:
+                        result = models[int(choice)-1]
                         cfg.model = result
                         memory.reset()
                         memory.save(SESSION_DIR / f"{cfg.active_session}.json")

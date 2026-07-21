@@ -19,6 +19,8 @@ Slash commands:
   /clear         Clear conversation
   /tools         List available tools
   /memory        Show context window usage
+  /settings      View active configuration
+  /about         View information about Orchestra
   /exit          Quit Orchestra
 """
 
@@ -110,6 +112,8 @@ SLASH_COMMANDS: dict[str, str] = {
     "/clear":        "Clear conversation",
     "/tools":        "List available tools",
     "/memory":       "Show context usage map",
+    "/settings":     "View current configuration settings",
+    "/about":        "Show information about Orchestra",
     "/exit":         "Quit Orchestra",
 }
 
@@ -725,8 +729,29 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
     # ── model ─────────────────────────────────────────────────────────────
     elif cmd == "/model":
         if not arg:
-            _info(f"Current model: [{theme.accent}]{cfg.model}[/]", theme)
-            _info("Usage: /model <name>  e.g. /model llama3.1:8b", theme)
+            try:
+                import ollama
+                from prompt_toolkit.shortcuts import radiolist_dialog
+                list_resp = ollama.list()
+                models = [m.model for m in list_resp.models]
+                if not models:
+                    _warn("No Ollama models found. Ensure Ollama is running.", theme)
+                else:
+                    choices = [(m, m) for m in models]
+                    result = radiolist_dialog(
+                        title="Select Ollama Model",
+                        text="Use UP/DOWN arrows to select, ENTER to confirm:",
+                        values=choices
+                    ).run()
+                    if result:
+                        cfg.model = result
+                        memory.reset()
+                        memory.save(SESSION_DIR / f"{cfg.active_session}.json")
+                        cfg.save()
+                        _info(f"Switched to [{theme.accent}]{result}[/] [dim](history reset)[/]", theme)
+            except Exception as e:
+                _error(f"Could not fetch models: {e}", theme)
+                _info("Usage: /model <name>  e.g. /model llama3.1:8b", theme)
         else:
             cfg.model = arg
             memory.reset()
@@ -736,6 +761,24 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
                 f"Switched to [{theme.accent}]{arg}[/]  [dim](history reset)[/]",
                 theme,
             )
+
+    # ── settings ──────────────────────────────────────────────────────────
+    elif cmd == "/settings":
+        import json
+        import dataclasses
+        settings_str = json.dumps(dataclasses.asdict(cfg), indent=2)
+        console.print(Panel(settings_str, title=f"[{theme.accent}]Configuration[/]", border_style=theme.border))
+
+    # ── about ─────────────────────────────────────────────────────────────
+    elif cmd == "/about":
+        about_text = (
+            f"[bold {theme.accent}]Orchestra[/] by TheAhsanFarabi\n\n"
+            "An agentic AI assistant framework built for power users.\n"
+            "Features include autonomous planning, persistent memory, multi-session support, "
+            "and ambient background music (Shift+Tab to toggle).\n\n"
+            "v1.0.0"
+        )
+        console.print(Panel(about_text, title=f"[{theme.accent}]About[/]", border_style=theme.border))
 
     # ── mood ──────────────────────────────────────────────────────────────
     elif cmd == "/mood":

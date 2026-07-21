@@ -18,9 +18,14 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Literal
 
-from .config import CONFIG_DIR
+from .config import CONFIG_DIR, Config, SESSION_DIR
 
-TODO_FILE = CONFIG_DIR / "todo.json"
+def get_todo_file() -> Path:
+    cfg = Config.load()
+    if cfg.active_session:
+        SESSION_DIR.mkdir(parents=True, exist_ok=True)
+        return SESSION_DIR / f"{cfg.active_session}_todo.json"
+    return CONFIG_DIR / "todo.json"
 
 # ── Display constants ─────────────────────────────────────────────────────────
 
@@ -103,19 +108,21 @@ class TodoList:
     # ── Persistence ───────────────────────────────────────────────────────
 
     def save(self) -> None:
-        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        p = get_todo_file()
+        p.parent.mkdir(parents=True, exist_ok=True)
         data = {
             "goal":  self.goal,
             "items": [asdict(i) for i in self.items],
         }
-        TODO_FILE.write_text(json.dumps(data, indent=2))
+        p.write_text(json.dumps(data, indent=2))
 
     @classmethod
     def load(cls) -> "TodoList":
-        if not TODO_FILE.exists():
+        p = get_todo_file()
+        if not p.exists():
             return cls()
         try:
-            data  = json.loads(TODO_FILE.read_text())
+            data  = json.loads(p.read_text())
             items = [TodoItem(**i) for i in data.get("items", [])]
             return cls(goal=data.get("goal", ""), items=items)
         except Exception:

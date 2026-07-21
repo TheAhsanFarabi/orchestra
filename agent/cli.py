@@ -13,6 +13,7 @@ import typer
 from .loop import run_agent
 from .tui import run_tui
 from .config import Config
+from .skills import skills_manager
 
 app = typer.Typer(
     add_completion=False,
@@ -48,7 +49,9 @@ def ask(
     """Ask the agent a single one-shot question."""
     cfg = Config.load()
     effective_model = model or cfg.model
-    answer, _ = run_agent(question, model=effective_model, verbose=verbose)
+    skills_manager.load()
+    prompt = skills_manager.build_system_prompt()
+    answer, _ = run_agent(question, model=effective_model, verbose=verbose, system_prompt=prompt)
     typer.echo(f"\n{answer}\n")
 
 
@@ -60,6 +63,8 @@ def chat(
     """Start a plain multi-turn chat session (no rich TUI)."""
     cfg = Config.load()
     effective_model = model or cfg.model
+    skills_manager.load()
+    prompt = skills_manager.build_system_prompt()
     typer.echo(f"Orchestra ready (model: {effective_model}). Type 'exit' or Ctrl+C to quit.\n")
     history = None
 
@@ -74,7 +79,7 @@ def chat(
             typer.echo("Goodbye.")
             raise typer.Exit()
 
-        answer, history = run_agent(user_input, model=effective_model, history=history, verbose=verbose)
+        answer, history = run_agent(user_input, model=effective_model, history=history, verbose=verbose, system_prompt=prompt)
         typer.echo(f"orchestra: {answer}\n")
 
 

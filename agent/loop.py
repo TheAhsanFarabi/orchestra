@@ -10,41 +10,69 @@ Flow per turn:
 """
 
 import json
+from typing import Callable, Any
 from ollama import chat
 from .tools import TOOLS, TOOL_REGISTRY
 
 MAX_ITERATIONS = 12
+MAX_TOOL_RETRIES = 1
 
-SYSTEM_PROMPT = """You are Orchestra, an autonomous local AI agent running on the user's device.
-
-CRITICAL WORKFLOW:
-1. When given a complex request or goal, DO NOT execute it immediately.
-2. First, break the request down into smaller, logical steps.
-3. Use the `todo_add` tool to add each step to your task list.
-4. Execute the tasks one by one using your available file and terminal tools.
-5. IMPORTANT: As soon as you finish a task, you MUST use the `todo_done` tool to mark it complete. Do not forget this step!
-6. SILENT TRACKING: Manage your todo list silently. When responding to the user, do not mention the todo list, goals, or tasks. Just provide a natural summary of the work you actually did.
-
-You have full access to the file system and terminal. Use your tools to gather information—never guess.
-Be concise in your verbal responses, let your tool actions do the work."""
+# Tools allowed in Plan mood (non-destructive only)
+PLAN_TOOLS = {"read_file", "list_directory", "search_files", "todo_add", "todo_done", "todo_list"}
 
 
-def run_agent(user_input: str, model: str, history: list | None = None, verbose: bool = False, system_prompt: str | None = None, mood: str = "action") -> tuple[str, list]:
+def _trim_context(messages: list[dict], context_limit: int = 32_768) -> list[dict]:
+    """
+    Trim old messages if estimated tokens exceed the context limit.
+    Always keeps the system prompt (messages[0]) and recent messages.
+    """
+    estimated = sum(len(str(m.get("content", ""))) // 4 for m in messages)
+    if estimated <= context_limit:
+        return messages
+
+    # Keep system prompt + as many recent messages as we can fit
+    system = messages[0]
+    system_tokens = len(str(system.get("content", ""))) // 4
+    budget = context_limit - system_tokens
+    
+    trimmed = []
+    for msg in reversed(messages[1:]):
+        msg_tokens = len(str(msg.get("content", ""))) // 4
+        if budget - msg_tokens < 0:
+            break
+        trimmed.insert(0, msg)
+        budget -= msg_tokens
+
+    return [system] + trimmed
+
+
+def run_agent(
+    user_input: str,
+    model: str,
+    system_prompt: str,
+    history: list | None = None,
+    verbose: bool = False,
+    mood: str = "action",
+    context_limit: int = 32_768,
+    on_tool_call: Callable[[str, dict, str], None] | None = None,
+) -> tuple[str, list]:
     """
     Run the agent loop for one user turn.
 
     Args:
         user_input: the user's message/question.
-        model: Ollama model name (e.g. "qwen2.5:7b").
-        history: prior conversation messages to continue from (for multi-turn CLI use).
+        model: Ollama model name (e.g. "qwen2.5:1.5b").
+        system_prompt: The system prompt (from skills_manager).
+        history: prior conversation messages to continue from.
         verbose: if True, print tool calls/results as they happen.
-        system_prompt: Optional override for the system prompt.
         mood: "action" (default, full tools) or "plan" (read-only tools).
+        context_limit: max estimated tokens before trimming old messages.
+        on_tool_call: callback(tool_name, args, result) for live UI updates.
 
     Returns:
         (final_answer_text, updated_history)
     """
-    effective_prompt = system_prompt or SYSTEM_PROMPT
+    effective_prompt = system_prompt
 
     # Always ensure the system prompt is present and up-to-date
     messages = history[:] if history else []
@@ -56,12 +84,14 @@ def run_agent(user_input: str, model: str, history: list | None = None, verbose:
     if mood == "plan":
         # Inject an architect prompt override
         messages[0]["content"] = effective_prompt + "\n\nYou are in PLAN mood. Your job is to architect, reason, and create step-by-step plans. Do NOT write code or execute modifying tools."
-        PLAN_TOOLS = {"read_file", "list_directory", "search_files", "todo_add", "todo_done", "todo_list"}
         active_tools = [t for t in TOOLS if getattr(t, "__name__", "") in PLAN_TOOLS]
     else:
         active_tools = TOOLS
 
     messages.append({"role": "user", "content": user_input})
+
+    # Trim context if it exceeds the limit
+    messages = _trim_context(messages, context_limit)
 
     for iteration in range(MAX_ITERATIONS):
         response = chat(
@@ -95,16 +125,25 @@ def run_agent(user_input: str, model: str, history: list | None = None, verbose:
             if tool_fn is None:
                 result = f"Error: unknown tool '{name}'"
             else:
-                try:
-                    result = tool_fn(**args)
-                except TypeError as e:
-                    result = f"Error: bad arguments for '{name}': {e}"
-                except Exception as e:
-                    result = f"Error executing '{name}': {e}"
+                # Retry logic for failed tool calls
+                for attempt in range(MAX_TOOL_RETRIES + 1):
+                    try:
+                        result = tool_fn(**args)
+                        break
+                    except TypeError as e:
+                        result = f"Error: bad arguments for '{name}': {e}"
+                        break  # Don't retry argument errors
+                    except Exception as e:
+                        if attempt == MAX_TOOL_RETRIES:
+                            result = f"Error executing '{name}' (after {attempt + 1} attempts): {e}"
 
             if verbose:
                 preview = result if len(result) < 300 else result[:300] + "...[truncated for display]"
                 print(f"  \033[2m[result] {preview}\033[0m")
+
+            # Notify the TUI so it can show live tool activity
+            if on_tool_call:
+                on_tool_call(name, args, result)
 
             messages.append({
                 "role": "tool",

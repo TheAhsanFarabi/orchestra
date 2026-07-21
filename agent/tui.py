@@ -441,17 +441,17 @@ def print_goals(theme: Theme) -> None:
     )
 
 
-# ── Thinking spinner ──────────────────────────────────────────────────────────
+# ── Agent activity display ────────────────────────────────────────────────────
 
-class Thinking:
-    """Context manager: animated spinner while the agent is working."""
+class AgentActivity:
+    """Context manager: shows a spinner + live tool call feed while the agent works."""
 
     def __init__(self, model: str, theme: Theme) -> None:
         self._model = model
         self._theme = theme
         self._live: Live | None = None
 
-    def __enter__(self) -> "Thinking":
+    def __enter__(self) -> "AgentActivity":
         global _active_live
         t = self._theme
         spinner = Spinner(
@@ -468,6 +468,15 @@ class Thinking:
         self._live.start()
         _active_live = self._live
         return self
+
+    def on_tool_call(self, name: str, args: dict, result: str) -> None:
+        """Called by run_agent after each tool execution."""
+        t = self._theme
+        if self._live:
+            self._live.stop()
+        console.print(f"  [{t.tool}]⚙ {name}[/]")
+        if self._live:
+            self._live.start()
 
     def __exit__(self, *_: Any) -> None:
         global _active_live
@@ -805,7 +814,8 @@ def run_tui(model: str | None = None, verbose: bool = False) -> None:
         history_in = memory.to_list() if not memory.is_empty else None
 
         try:
-            with Thinking(state["cfg"].model, theme):
+            activity = AgentActivity(state["cfg"].model, theme)
+            with activity:
                 answer, new_msgs = run_agent(
                     user_input,
                     model         = state["cfg"].model,
@@ -813,6 +823,8 @@ def run_tui(model: str | None = None, verbose: bool = False) -> None:
                     verbose       = state["verbose"],
                     system_prompt = state["system_prompt"],
                     mood          = state["mood"],
+                    context_limit = state["cfg"].context_limit,
+                    on_tool_call  = activity.on_tool_call,
                 )
             state["memory"] = MemoryLayer.from_list(new_msgs)
             state["memory"].save(SESSION_DIR / f"{state['cfg'].active_session}.json")

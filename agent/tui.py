@@ -44,6 +44,7 @@ from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.styles import Style as PTStyle
 from prompt_toolkit.formatted_text import HTML
+from prompt_toolkit.key_binding import KeyBindings
 
 from rich.console import Console, Group
 from rich.markdown import Markdown
@@ -87,7 +88,6 @@ SLASH_COMMANDS: dict[str, str] = {
     "/session":      "Manage chat sessions  —  /session [list|new|delete|<hash>]",
     "/todo":         "Manage your todo list",
     "/goal":         "Manage your overarching goal",
-    "/music":        "Toggle background music",
     "/clear":        "Clear conversation",
     "/tools":        "List available tools",
     "/memory":       "Show context usage map",
@@ -171,6 +171,22 @@ def _make_session(theme: Theme, state: dict | None = None) -> PromptSession:
         if not state: return None
         return _get_bottom_toolbar(state)
 
+    bindings = KeyBindings()
+
+    @bindings.add('s-tab')
+    def toggle_music(event):
+        if not _pygame_available: return
+        if pygame.mixer.music.get_busy():
+            pygame.mixer.music.stop()
+        else:
+            music_file = Path("assets/lofi.mp3")
+            if music_file.exists():
+                try:
+                    pygame.mixer.music.load(str(music_file))
+                    pygame.mixer.music.play(loops=-1)
+                except Exception:
+                    pass
+
     return PromptSession(
         history             = FileHistory(str(HISTORY_FILE)),
         auto_suggest        = AutoSuggestFromHistory(),
@@ -178,6 +194,7 @@ def _make_session(theme: Theme, state: dict | None = None) -> PromptSession:
         style               = pt_style,
         complete_while_typing = True,
         bottom_toolbar      = get_toolbar,
+        key_bindings        = bindings,
     )
 
 
@@ -596,25 +613,6 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
         else:
             print_memory(memory, theme, cfg.context_limit)
 
-    # ── music ─────────────────────────────────────────────────────────────
-    elif cmd == "/music":
-        if not _pygame_available:
-            _warn("Music feature is unavailable. Please install pygame: pip install pygame", theme)
-        else:
-            if pygame.mixer.music.get_busy():
-                pygame.mixer.music.stop()
-                _info("Background music stopped.", theme)
-            else:
-                music_file = Path("assets/lofi.mp3")
-                if music_file.exists():
-                    try:
-                        pygame.mixer.music.load(str(music_file))
-                        pygame.mixer.music.play(loops=-1)
-                        _info("Playing ambient background music...", theme)
-                    except Exception as e:
-                        _error(f"Could not play music: {e}", theme)
-                else:
-                    _warn("No 'assets/lofi.mp3' found.", theme)
 
     # ── todo ──────────────────────────────────────────────────────────────
     elif cmd == "/todo":

@@ -9,11 +9,13 @@ First run:
 Slash commands:
   /help          Show all commands
   /model         Switch Ollama model
-  /memory        Show context window (cube grid)
+  /fast          Switch to fastest CPU model
+  /mood          Toggle Action / Plan mode
+  /add           Inject file into context
+  /session       Manage chat sessions
   /todo          Manage the todo list
   /goal          Show or set the active goal
   /skills        Show ~/.orchestra/SKILL.md
-  /history       View conversation history
   /clear         Clear conversation
   /tools         List available tools
   /memory        Show context window usage
@@ -369,11 +371,11 @@ def print_todo(todo: TodoList, theme: Theme) -> None:
     tbl.add_column("Status", width=14,              no_wrap=True)
     tbl.add_column("Task")
 
-    for i, item in enumerate(todo.items, 1):
+    for item in todo.items:
         icon   = STATUS_ICON[item.status]
         istyle = STATUS_STYLE[item.status]
         tbl.add_row(
-            str(i),
+            str(item.id),
             Text(f"{icon} {item.status}", style=istyle),
             item.text,
         )
@@ -506,12 +508,14 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
     # ── reset ─────────────────────────────────────────────────────────────
     elif cmd == "/reset":
         memory.reset()
+        memory.save(SESSION_DIR / f"{cfg.active_session}.json")
         _info("Conversation history cleared.", theme)
 
     # ── memory ────────────────────────────────────────────────────────────
     elif cmd == "/memory":
         if arg.lower() in ("clear", "reset"):
             memory.reset()
+            memory.save(SESSION_DIR / f"{cfg.active_session}.json")
             _info("Context window cleared.", theme)
         else:
             print_memory(memory, theme, cfg.context_limit)
@@ -609,6 +613,7 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
         else:
             cfg.model = arg
             memory.reset()
+            memory.save(SESSION_DIR / f"{cfg.active_session}.json")
             cfg.save()
             _info(
                 f"Switched to [{theme.accent}]{arg}[/]  [dim](history reset)[/]",
@@ -649,7 +654,7 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
         if not arg or arg == "list":
             sessions = []
             if SESSION_DIR.exists():
-                sessions = [p.stem for p in SESSION_DIR.glob("*.json")]
+                sessions = [p.stem for p in SESSION_DIR.glob("*.json") if not p.stem.endswith("_todo")]
             if not sessions:
                 _info("No saved sessions.", theme)
             else:
@@ -668,6 +673,9 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
             target = SESSION_DIR / f"{target_hash}.json"
             if target.exists():
                 target.unlink()
+                todo_file = SESSION_DIR / f"{target_hash}_todo.json"
+                if todo_file.exists():
+                    todo_file.unlink()
                 _info(f"Session '{target_hash}' has been deleted.", theme)
                 if cfg.active_session == target_hash:
                     import uuid

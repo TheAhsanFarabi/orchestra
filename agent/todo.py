@@ -68,29 +68,30 @@ class TodoList:
         self.items.append(item)
         return item
 
-    def _get(self, one_based_index: int) -> TodoItem | None:
-        idx = one_based_index - 1
-        if 0 <= idx < len(self.items):
-            return self.items[idx]
+    def _get(self, item_id: int) -> TodoItem | None:
+        """Find item by its unique id."""
+        for item in self.items:
+            if item.id == item_id:
+                return item
         return None
 
-    def start(self, one_based_index: int) -> bool:
-        item = self._get(one_based_index)
+    def start(self, item_id: int) -> bool:
+        item = self._get(item_id)
         if item and item.status == "pending":
             item.status = "in_progress"
             return True
         return False
 
-    def complete(self, one_based_index: int) -> bool:
-        item = self._get(one_based_index)
+    def complete(self, item_id: int) -> bool:
+        item = self._get(item_id)
         if item and item.status in ("pending", "in_progress"):
             item.status       = "done"
             item.completed_at = time.time()
             return True
         return False
 
-    def fail(self, one_based_index: int) -> bool:
-        item = self._get(one_based_index)
+    def fail(self, item_id: int) -> bool:
+        item = self._get(item_id)
         if item and item.status in ("pending", "in_progress"):
             item.status       = "failed"
             item.completed_at = time.time()
@@ -136,9 +137,9 @@ class TodoList:
         lines: list[str] = []
         if self.goal:
             lines.append(f"Goal: {self.goal}\n")
-        for i, item in enumerate(self.items, 1):
+        for item in self.items:
             icon = STATUS_ICON[item.status]
-            lines.append(f"  {i}. {icon} {item.text}  [{item.status}]")
+            lines.append(f"  {item.id}. {icon} {item.text}  [{item.status}]")
         done    = sum(1 for x in self.items if x.status == "done")
         pending = sum(1 for x in self.items if x.status == "pending")
         lines.append(f"\n  {done} done, {pending} pending, {len(self.items)} total")

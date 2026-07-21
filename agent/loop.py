@@ -44,13 +44,20 @@ def run_agent(user_input: str, model: str, history: list | None = None, verbose:
     Returns:
         (final_answer_text, updated_history)
     """
-    messages = history[:] if history else [{"role": "system", "content": system_prompt or SYSTEM_PROMPT}]
-    
+    effective_prompt = system_prompt or SYSTEM_PROMPT
+
+    # Always ensure the system prompt is present and up-to-date
+    messages = history[:] if history else []
+    if not messages or messages[0].get("role") != "system":
+        messages.insert(0, {"role": "system", "content": effective_prompt})
+    else:
+        messages[0]["content"] = effective_prompt
+
     if mood == "plan":
-        # Inject an architect prompt override if it's the first turn
-        if not history:
-            messages[0]["content"] = (system_prompt or SYSTEM_PROMPT) + "\n\nYou are in PLAN mood. Your job is to architect, reason, and create step-by-step plans. Do NOT write code or execute modifying tools."
-        active_tools = [t for t in TOOLS if getattr(t, "__name__", "") in ["read_file", "list_directory", "search_files", "todo_list"]]
+        # Inject an architect prompt override
+        messages[0]["content"] = effective_prompt + "\n\nYou are in PLAN mood. Your job is to architect, reason, and create step-by-step plans. Do NOT write code or execute modifying tools."
+        PLAN_TOOLS = {"read_file", "list_directory", "search_files", "todo_add", "todo_done", "todo_list"}
+        active_tools = [t for t in TOOLS if getattr(t, "__name__", "") in PLAN_TOOLS]
     else:
         active_tools = TOOLS
 

@@ -20,7 +20,7 @@ app = typer.Typer(
     invoke_without_command=True,
 )
 
-DEFAULT_MODEL = "qwen2.5:latest"
+
 
 
 @app.callback(invoke_without_command=True)
@@ -42,21 +42,25 @@ def tui(
 @app.command()
 def ask(
     question: str  = typer.Argument(...,   help="The question or task for the agent."),
-    model:    str  = typer.Option(DEFAULT_MODEL, "--model", "-m", help="Ollama model to use."),
+    model:    str  = typer.Option(None, "--model", "-m", help="Ollama model to use."),
     verbose:  bool = typer.Option(False, "--verbose", "-v", help="Show tool calls and results."),
 ) -> None:
     """Ask the agent a single one-shot question."""
-    answer, _ = run_agent(question, model=model, verbose=verbose)
+    cfg = Config.load()
+    effective_model = model or cfg.model
+    answer, _ = run_agent(question, model=effective_model, verbose=verbose)
     typer.echo(f"\n{answer}\n")
 
 
 @app.command()
 def chat(
-    model:   str  = typer.Option(DEFAULT_MODEL, "--model", "-m", help="Ollama model to use."),
+    model:   str  = typer.Option(None, "--model", "-m", help="Ollama model to use."),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show tool calls and results."),
 ) -> None:
     """Start a plain multi-turn chat session (no rich TUI)."""
-    typer.echo(f"Orchestra ready (model: {model}). Type 'exit' or Ctrl+C to quit.\n")
+    cfg = Config.load()
+    effective_model = model or cfg.model
+    typer.echo(f"Orchestra ready (model: {effective_model}). Type 'exit' or Ctrl+C to quit.\n")
     history = None
 
     while True:
@@ -70,7 +74,7 @@ def chat(
             typer.echo("Goodbye.")
             raise typer.Exit()
 
-        answer, history = run_agent(user_input, model=model, history=history, verbose=verbose)
+        answer, history = run_agent(user_input, model=effective_model, history=history, verbose=verbose)
         typer.echo(f"orchestra: {answer}\n")
 
 

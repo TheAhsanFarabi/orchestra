@@ -35,6 +35,7 @@ class Turn:
     content:    str
     timestamp:  float       = field(default_factory=time.time)
     tool_name:  str | None  = None   # populated for assistant tool-calls
+    _raw:       dict[str, Any] | None = field(default=None, repr=False)
 
     # ── Properties ────────────────────────────────────────────────────────
 
@@ -51,6 +52,8 @@ class Turn:
 
     def to_dict(self) -> dict[str, Any]:
         """Minimal dict compatible with Ollama's message format."""
+        if self._raw is not None:
+            return self._raw
         return {"role": self.role, "content": self.content}
 
     @classmethod
@@ -73,7 +76,7 @@ class Turn:
             except Exception:
                 pass
 
-        return cls(role=role, content=content, tool_name=tool_name)
+        return cls(role=role, content=content, tool_name=tool_name, _raw=d)
 
 
 # ── MemoryLayer ───────────────────────────────────────────────────────────────

@@ -34,6 +34,8 @@ from typing import Any
 import pyfiglet
 
 try:
+    import os
+    os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
     import pygame
     pygame.mixer.init()
     _pygame_available = True

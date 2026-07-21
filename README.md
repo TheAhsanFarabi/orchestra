@@ -37,8 +37,8 @@ Orchestra relies on local models. Before running it, pull a model using Ollama.
 *If you are running on a CPU-only machine, we highly recommend a 1.5B parameter model for speed.*
 
 ```bash
-# Recommended for standard machines / laptops (8B parameters)
-ollama pull llama3.1:8b
+# Recommended for standard machines / laptops (4B parameters)
+ollama pull qwen3:4b-instruct
 
 # Recommended for CPU-only or older machines (1.5B parameters)
 ollama pull qwen2.5:1.5b

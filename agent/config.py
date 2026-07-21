@@ -17,6 +17,7 @@ from pathlib import Path
 CONFIG_DIR   = Path.home() / ".orchestra"
 CONFIG_FILE  = CONFIG_DIR / "config.json"
 HISTORY_FILE = CONFIG_DIR / "history"
+SESSION_DIR  = CONFIG_DIR / "sessions"
 VERSION      = "1.0.0"
 
 
@@ -80,6 +81,7 @@ class Config:
     welcomed:      bool = False
     model:         str  = "qwen2.5:latest"
     context_limit: int  = 32_768
+    active_session: str | None = None
 
     # ── persistence ───────────────────────────────────────────────────────────
 

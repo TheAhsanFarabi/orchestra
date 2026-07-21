@@ -56,7 +56,7 @@ from .skills import skills_manager
 from .todo import TodoList, STATUS_ICON, STATUS_STYLE
 from .config import (
     Config, Theme, THEMES, THEME_KEYS, DEFAULT_THEME,
-    HISTORY_FILE, VERSION,
+    HISTORY_FILE, SESSION_DIR, VERSION,
 )
 
 # ── Shared console ────────────────────────────────────────────────────────────
@@ -74,6 +74,9 @@ SLASH_COMMANDS: dict[str, str] = {
     "/model":        "Switch model  —  /model <name>",
     "/mood":         "Toggle between Action (default) and Plan mode",
     "/add":          "Inject a file's content into AI context  —  /add <file>",
+    "/session":      "Manage chat sessions  —  /session [list|new|<hash>]",
+    "/todo":         "Manage your todo list",
+    "/goal":         "Manage your overarching goal",
     "/history":      "View conversation history",
     "/clear":        "Clear conversation",
     "/tools":        "List available tools",
@@ -635,6 +638,35 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
                 except Exception as e:
                     _error(f"Could not read {arg}: {e}", theme)
 
+    # ── session ───────────────────────────────────────────────────────────
+    elif cmd == "/session":
+        if not arg or arg == "list":
+            sessions = []
+            if SESSION_DIR.exists():
+                sessions = [p.stem for p in SESSION_DIR.glob("*.json")]
+            if not sessions:
+                _info("No saved sessions.", theme)
+            else:
+                _info("Saved sessions:\n  " + "\n  ".join(sessions), theme)
+                _info(f"Current active session: {cfg.active_session}", theme)
+        elif arg == "new":
+            import uuid
+            new_hash = uuid.uuid4().hex[:8]
+            cfg.active_session = new_hash
+            cfg.save()
+            state["memory"] = MemoryLayer()
+            state["memory"].save(SESSION_DIR / f"{new_hash}.json")
+            _info(f"Started new session: {new_hash}", theme)
+        else:
+            target = SESSION_DIR / f"{arg}.json"
+            if target.exists():
+                cfg.active_session = arg
+                cfg.save()
+                state["memory"] = MemoryLayer.load(target)
+                _info(f"Resumed session: {arg}", theme)
+            else:
+                _warn(f"Session not found: {arg}", theme)
+
     # ── unknown ───────────────────────────────────────────────────────────
     else:
         _warn(
@@ -670,9 +702,17 @@ def run_tui(model: str | None = None, verbose: bool = False) -> None:
 
     print_banner(theme, cfg.model)
 
+    if not cfg.active_session:
+        import uuid
+        cfg.active_session = uuid.uuid4().hex[:8]
+        cfg.save()
+
+    active_session_file = SESSION_DIR / f"{cfg.active_session}.json"
+    memory = MemoryLayer.load(active_session_file)
+
     state: dict[str, Any] = {
         "cfg":           cfg,
-        "memory":        MemoryLayer(),
+        "memory":        memory,
         "verbose":       verbose,
         "session":       session,
         "system_prompt": skills_manager.build_system_prompt(),
@@ -720,6 +760,7 @@ def run_tui(model: str | None = None, verbose: bool = False) -> None:
                 "role": "user", 
                 "content": f"I ran a terminal command: `{command}`\n\nOutput:\n```\n{output}\n```"
             })
+            state["memory"].save(SESSION_DIR / f"{state['cfg'].active_session}.json")
             continue
 
         # ── Agent turn ────────────────────────────────────────────────────
@@ -744,6 +785,7 @@ def run_tui(model: str | None = None, verbose: bool = False) -> None:
                     mood          = state["mood"],
                 )
             state["memory"] = MemoryLayer.from_list(new_msgs)
+            state["memory"].save(SESSION_DIR / f"{state['cfg'].active_session}.json")
 
         except Exception as exc:
             _error(f"Agent error: {exc}", theme)

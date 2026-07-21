@@ -14,8 +14,10 @@ Integration pattern (in the TUI loop):
 
 from __future__ import annotations
 
+import json
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 # Rough heuristic: English prose ≈ 4 chars per token.
@@ -114,6 +116,22 @@ class MemoryLayer:
         for m in msgs:
             obj.turns.append(Turn.from_dict(m))
         return obj
+
+    def save(self, filepath: Path) -> None:
+        """Persist memory to a JSON file."""
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        filepath.write_text(json.dumps(self.to_list(), indent=2), encoding="utf-8")
+
+    @classmethod
+    def load(cls, filepath: Path) -> "MemoryLayer":
+        """Load memory from a JSON file."""
+        if not filepath.exists():
+            return cls()
+        try:
+            msgs = json.loads(filepath.read_text(encoding="utf-8"))
+            return cls.from_list(msgs)
+        except Exception:
+            return cls()
 
     # ── Stats ─────────────────────────────────────────────────────────────
 

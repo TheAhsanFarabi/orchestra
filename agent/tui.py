@@ -84,7 +84,6 @@ SLASH_COMMANDS: dict[str, str] = {
     "/tools":        "List available tools",
     "/memory":       "Show context usage map",
     "/exit":         "Quit Orchestra",
-    "/quit":         "Quit Orchestra",
 }
 
 
@@ -501,8 +500,14 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
     memory: MemoryLayer = state["memory"]
 
     # ── exit ──────────────────────────────────────────────────────────────
-    if cmd in ("/exit", "/quit"):
-        console.print(f"\n  [{theme.accent}]Goodbye.[/]\n")
+    if cmd == "/exit":
+        import time
+        msg = "  Shutting down all local systems and securely preserving your session state...\n  Farewell, Commander. Until next time."
+        console.print()
+        for char in msg:
+            console.print(f"[{theme.accent}]{char}[/]", end="")
+            time.sleep(0.03)
+        console.print("\n")
         return False
 
     # ── help ──────────────────────────────────────────────────────────────

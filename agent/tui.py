@@ -239,7 +239,7 @@ def _get_bottom_toolbar(state: dict) -> HTML:
     mood = state["mood"].capitalize()
     
     try:
-        tasks = TodoList.load()
+        tasks = TaskList.load()
         pending = sum(1 for i in tasks.items if i.status == "pending")
         goal_status = "Active" if tasks.goal else "None"
     except Exception:
@@ -456,7 +456,7 @@ def print_memory(memory: MemoryLayer, theme: Theme, context_limit: int = 32_768)
 
 # ── /tasks ─────────────────────────────────────────────────────────────────────
 
-def print_tasks(todo: TodoList, theme: Theme) -> None:
+def print_tasks(tasks: TaskList, theme: Theme) -> None:
     goal_text = tasks.goal if tasks.goal else "(no goal set — use /goal set <text>)"
 
     tbl = Table(
@@ -650,16 +650,16 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
             print_memory(memory, theme, cfg.context_limit)
 
 
-    # ── todo ──────────────────────────────────────────────────────────────
+    # ── tasks ──────────────────────────────────────────────────────────────
     elif cmd == "/tasks":
         sub_parts = arg.split(maxsplit=1)
         sub       = sub_parts[0].lower() if sub_parts else ""
         sub_arg   = sub_parts[1].strip() if len(sub_parts) > 1 else ""
 
-        tasks = TodoList.load()
+        tasks = TaskList.load()
 
         if not arg or sub == "list":
-            print_tasks(todo, theme)
+            print_tasks(tasks, theme)
 
         elif sub == "add":
             if not sub_arg:
@@ -705,7 +705,7 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
                 skills_manager.set_active_goal(sub_arg)
                 state["system_prompt"] = skills_manager.build_system_prompt()
                 # Also store goal in tasks list
-                tasks = TodoList.load()
+                tasks = TaskList.load()
                 tasks.goal = sub_arg
                 tasks.save()
                 _info(f"Goal set: [{theme.accent}]{sub_arg}[/]", theme)

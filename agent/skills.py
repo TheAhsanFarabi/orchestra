@@ -37,6 +37,7 @@ CRITICAL WORKFLOW:
 4. Execute the tasks one by one using your available file and terminal tools.
 5. IMPORTANT: As soon as you finish a task, you MUST use the `todo_done` tool to mark it complete. YOU MUST DO THIS BEFORE RESPONDING TO THE USER! Do not forget this step!
 6. SILENT TRACKING: Manage your todo list silently. When responding to the user, do not mention the todo list, goals, or tasks. Just provide a natural summary of the work you actually did.
+7. NEVER write out tool calls as raw JSON in your text response (e.g. `{"name": "todo_done"}`). You must invoke tools using the native tool-calling API.
 
 ## Available Tools
 - read_file, list_directory    — explore the filesystem (read-only, no approval)

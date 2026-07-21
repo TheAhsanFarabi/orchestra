@@ -242,7 +242,7 @@ def create_directory(path: str) -> str:
         if err:
             return err
         if p.exists():
-            return f"Directory already exists: '{p}'"
+            return f"OK: Directory already exists: '{p}'"
         req = PermissionRequest(
             tool_name = "create_directory",
             action    = "Create directory",

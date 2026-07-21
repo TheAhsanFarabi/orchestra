@@ -588,7 +588,7 @@ class AgentActivity:
         t = self._theme
         if self._live:
             self._live.stop()
-        console.print(f"  [{t.tool}]⚙ {name}[/]")
+        console.print(f"  [{t.tool}]⚙ using \"{name}\" tool...[/]")
         if self._live:
             self._live.start()
 

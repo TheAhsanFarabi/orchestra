@@ -173,11 +173,15 @@ def tasks_done(task_id: int) -> str:
         Confirmation or error message.
     """
     t = TaskList.load()
+    item = t._get(task_id)
+    if not item:
+        return f"Error: task #{task_id} does not exist."
+    if item.status == "done":
+        return f"Task #{task_id} is already marked as done."
     if t.complete(task_id):
-        item = t._get(task_id)
         t.save()
-        return f"Marked #{task_id} as done: {item.text if item else ''}"
-    return f"Error: could not complete task #{task_id} (check the ID or status)."
+        return f"Marked #{task_id} as done: {item.text}"
+    return f"Error: could not complete task #{task_id}."
 
 
 def tasks_list() -> str:

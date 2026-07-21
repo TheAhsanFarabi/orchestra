@@ -679,23 +679,39 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
             _info(f"Started new session: {new_hash}", theme)
         elif arg.startswith("delete "):
             target_hash = arg.split(" ", 1)[1].strip()
-            target = SESSION_DIR / f"{target_hash}.json"
-            if target.exists():
-                target.unlink()
-                todo_file = SESSION_DIR / f"{target_hash}_todo.json"
-                if todo_file.exists():
-                    todo_file.unlink()
-                _info(f"Session '{target_hash}' has been deleted.", theme)
-                if cfg.active_session == target_hash:
-                    import uuid
-                    new_hash = uuid.uuid4().hex[:8]
-                    cfg.active_session = new_hash
-                    cfg.save()
-                    state["memory"].reset()
-                    state["memory"].save(SESSION_DIR / f"{new_hash}.json")
-                    _info(f"Active session deleted. Started a new session: {new_hash}", theme)
+            
+            if target_hash == "all":
+                count = 0
+                if SESSION_DIR.exists():
+                    for target in SESSION_DIR.glob("*.json"):
+                        target.unlink()
+                        count += 1
+                
+                import uuid
+                new_hash = uuid.uuid4().hex[:8]
+                cfg.active_session = new_hash
+                cfg.save()
+                state["memory"].reset()
+                state["memory"].save(SESSION_DIR / f"{new_hash}.json")
+                _info(f"Deleted {count} session file(s). Started a fresh session: {new_hash}", theme)
             else:
-                _warn(f"Session not found: {target_hash}", theme)
+                target = SESSION_DIR / f"{target_hash}.json"
+                if target.exists():
+                    target.unlink()
+                    todo_file = SESSION_DIR / f"{target_hash}_todo.json"
+                    if todo_file.exists():
+                        todo_file.unlink()
+                    _info(f"Session '{target_hash}' has been deleted.", theme)
+                    if cfg.active_session == target_hash:
+                        import uuid
+                        new_hash = uuid.uuid4().hex[:8]
+                        cfg.active_session = new_hash
+                        cfg.save()
+                        state["memory"].reset()
+                        state["memory"].save(SESSION_DIR / f"{new_hash}.json")
+                        _info(f"Active session deleted. Started a new session: {new_hash}", theme)
+                else:
+                    _warn(f"Session not found: {target_hash}", theme)
         else:
             target = SESSION_DIR / f"{arg}.json"
             if target.exists():

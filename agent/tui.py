@@ -105,9 +105,9 @@ TIPS = [
     "Use /session new to start a fresh conversation",
     "Prefix commands with ! to run them in the terminal",
     "Use /fast for quick CPU-only responses",
-    "Use /add <file> to inject files into context",
+    "Use /add &lt;file&gt; to inject files into context",
     "Use /theme to change the visual theme",
-    "Use /goal set <text> to set a persistent goal",
+    "Use /goal set &lt;text&gt; to set a persistent goal",
 ]
 
 # ── Shared console ────────────────────────────────────────────────────────────

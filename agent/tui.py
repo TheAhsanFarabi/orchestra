@@ -1066,12 +1066,28 @@ def run_tui(model: str | None = None, verbose: bool = False) -> None:
     while True:
         theme = state["cfg"].current_theme
 
+        # Rebuild prompt_toolkit style from current theme each iteration
+        pt_style = PTStyle.from_dict({
+            "completion-menu.completion":
+                f"bg:#1e1e2e #{theme.pt_model}",
+            "completion-menu.completion.current":
+                f"bg:#{theme.pt_main} #1e1e2e bold",
+            "auto-suggestion":
+                f"#{theme.pt_dim} italic",
+            "bottom-toolbar":
+                f"bg:#1e1e2e #{theme.pt_dim}",
+        })
+
+        def get_toolbar():
+            return _get_bottom_toolbar(state)
+
         try:
-            import shutil
             w = shutil.get_terminal_size().columns
             
             user_input: str = state["session"].prompt(
-                _prompt_html(state["cfg"].model, theme)
+                _prompt_html(state["cfg"].model, theme),
+                style=pt_style,
+                bottom_toolbar=get_toolbar,
             )
             # Print gradient bottom border to complete the layout
             print(_gradient_rule(theme, w), flush=True)

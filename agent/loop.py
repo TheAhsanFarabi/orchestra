@@ -150,10 +150,16 @@ def run_agent(
             if verbose:
                 print(f"  \033[2m[tool] {name}({args})\033[0m")
 
-            tool_fn = TOOL_REGISTRY.get(name)
-            if tool_fn is None:
-                result = f"Error: unknown tool '{name}'"
+            allowed_names = [getattr(t, "__name__", "") for t in current_tools]
+            if name not in allowed_names:
+                result = f"Error: Tool '{name}' is not allowed in the current phase. Please yield and use it in the next turn."
+                tool_fn = None
             else:
+                tool_fn = TOOL_REGISTRY.get(name)
+                
+            if tool_fn is None and name in allowed_names:
+                result = f"Error: unknown tool '{name}'"
+            elif tool_fn is not None:
                 # Retry logic for failed tool calls
                 for attempt in range(MAX_TOOL_RETRIES + 1):
                     try:

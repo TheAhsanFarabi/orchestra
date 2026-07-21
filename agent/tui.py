@@ -587,7 +587,7 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
                 pygame.mixer.music.stop()
                 _info("Background music stopped.", theme)
             else:
-                music_file = Path("lofi.mp3")
+                music_file = Path("assets/lofi.mp3")
                 if music_file.exists():
                     try:
                         pygame.mixer.music.load(str(music_file))
@@ -596,7 +596,7 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
                     except Exception as e:
                         _error(f"Could not play music: {e}", theme)
                 else:
-                    _warn("No 'lofi.mp3' found in the current directory.", theme)
+                    _warn("No 'assets/lofi.mp3' found.", theme)
 
     # ── todo ──────────────────────────────────────────────────────────────
     elif cmd == "/todo":

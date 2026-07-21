@@ -94,10 +94,15 @@ def run_agent(
     messages = _trim_context(messages, context_limit)
 
     for iteration in range(MAX_ITERATIONS):
+        current_tools = active_tools
+        # Force planning on the first iteration of a new Action request
+        if mood == "action" and iteration == 0:
+            current_tools = [t for t in active_tools if getattr(t, "__name__", "") in PLAN_TOOLS]
+
         response = chat(
             model=model,
             messages=messages,
-            tools=active_tools if active_tools else None,
+            tools=current_tools if current_tools else None,
         )
         msg = response["message"]
 

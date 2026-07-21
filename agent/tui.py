@@ -953,10 +953,17 @@ def run_tui(model: str | None = None, verbose: bool = False) -> None:
             return HTML(f"<style fg='#{theme.pt_main}'>│</style> ")
 
         try:
+            import shutil
+            w = shutil.get_terminal_size().columns
+            c_hex = f"#{theme.pt_main}"
+            
             user_input: str = state["session"].prompt(
                 _prompt_html(state["cfg"].model, theme),
-                prompt_continuation=continuation
+                prompt_continuation=continuation,
+                rprompt=HTML(f"<style fg='{c_hex}'>│</style>")
             )
+            # Print bottom border to complete the box
+            console.print(f"[{theme.pt_main}]╰" + "─" * max(0, w - 2) + "╯[/]")
         except KeyboardInterrupt:
             console.print()
             continue

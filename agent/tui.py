@@ -226,13 +226,12 @@ def _make_session(theme: Theme, state: dict | None = None) -> PromptSession:
 
 def _prompt_html(model: str, theme: Theme) -> HTML:
     c = f"#{theme.pt_main}"
-    m = f"#{theme.pt_model}"
+    import shutil
+    w = shutil.get_terminal_size().columns
+    top = "╭" + "─" * max(0, w - 2) + "╮"
     return HTML(
-        f"<style fg='{c}'>[ </style>"
-        f"<b><style fg='{c}'>you</style></b>"
-        f" <style fg='{m}'>({model})</style>"
-        f"<style fg='{c}'> ]</style>"
-        f" <b><style fg='{c}'>&gt;</style></b> "
+        f"<style fg='{c}'>{top}</style>\n"
+        f"<style fg='{c}'>│</style> <b><style fg='{c}'>&gt;</style></b> "
     )
 
 
@@ -949,10 +948,14 @@ def run_tui(model: str | None = None, verbose: bool = False) -> None:
     # ── REPL ──────────────────────────────────────────────────────────────
     while True:
         theme = state["cfg"].current_theme
+        
+        def continuation(width, line_number, is_soft_wrap):
+            return HTML(f"<style fg='#{theme.pt_main}'>│</style> ")
 
         try:
             user_input: str = state["session"].prompt(
-                _prompt_html(state["cfg"].model, theme)
+                _prompt_html(state["cfg"].model, theme),
+                prompt_continuation=continuation
             )
         except KeyboardInterrupt:
             console.print()

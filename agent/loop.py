@@ -13,6 +13,7 @@ import json
 from typing import Callable, Any
 from ollama import chat
 from .tools import TOOLS, TOOL_REGISTRY
+from .todo import TodoList
 
 MAX_ITERATIONS = 12
 MAX_TOOL_RETRIES = 1
@@ -93,11 +94,19 @@ def run_agent(
     # Trim context if it exceeds the limit
     messages = _trim_context(messages, context_limit)
 
+    # Load current todo state to see if we are already mid-plan
+    has_pending_tasks = any(i.status == "pending" for i in TodoList.load().items)
+
     for iteration in range(MAX_ITERATIONS):
         current_tools = active_tools
-        # Force planning on the first iteration of a new Action request
-        if mood == "action" and iteration == 0:
+        # Force planning ONLY if we are in action mood, it's the very first iteration,
+        # AND there are no pending tasks (meaning it's a brand new goal).
+        if mood == "action" and iteration == 0 and not has_pending_tasks:
             current_tools = [t for t in active_tools if getattr(t, "__name__", "") in PLAN_TOOLS]
+            
+            # Inject a silent reminder for this turn only so the LLM doesn't stop and wait
+            if len(messages) > 0 and messages[-1]["role"] == "user":
+                messages[-1]["content"] += "\n\n(System Note: You must use todo_add to break this down now. Do not return plain text only. You must output tool calls.)"
 
         response = chat(
             model=model,

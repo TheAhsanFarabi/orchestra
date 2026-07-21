@@ -45,6 +45,25 @@ from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.styles import Style as PTStyle
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.application import get_app
+import threading
+
+_anim_thread_started = False
+def _start_anim_thread():
+    global _anim_thread_started
+    if _anim_thread_started: return
+    _anim_thread_started = True
+    def run():
+        while True:
+            time.sleep(0.2)
+            if _pygame_available and pygame.mixer.music.get_busy():
+                try:
+                    app = get_app()
+                    if app and app.is_running:
+                        app.invalidate()
+                except Exception:
+                    pass
+    threading.Thread(target=run, daemon=True).start()
 
 from rich.console import Console, Group
 from rich.markdown import Markdown
@@ -155,6 +174,7 @@ def _tui_confirm(req: PermissionRequest) -> bool:
 # ── prompt_toolkit session ────────────────────────────────────────────────────
 
 def _make_session(theme: Theme, state: dict | None = None) -> PromptSession:
+    _start_anim_thread()
     completer = WordCompleter(list(SLASH_COMMANDS.keys()), sentence=True)
     pt_style  = PTStyle.from_dict({
         "completion-menu.completion":
@@ -221,9 +241,12 @@ def _get_bottom_toolbar(state: dict) -> HTML:
         goal_status = "None"
         
     if _pygame_available and pygame.mixer.music.get_busy():
-        music = "♫ Playing"
+        import random
+        bars = [" ", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+        eq = "".join(random.choice(bars) for _ in range(4))
+        music = f"♫ Playing {eq}"
     else:
-        music = "Paused"
+        music = "Paused ▄▃▂ "
         
     theme = state["cfg"].current_theme
     c = f"#{theme.pt_main}"

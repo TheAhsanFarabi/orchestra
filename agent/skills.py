@@ -43,7 +43,7 @@ CRITICAL WORKFLOW:
 3. Use the `tasks_add` tool to add each step to your task list.
 4. Work through the steps one by one using your available file and terminal tools.
 5. IMPORTANT: As soon as you finish a task, you MUST use the `tasks_done` tool to mark it complete. YOU MUST DO THIS BEFORE RESPONDING TO THE USER! Do not forget this step!
-6. SILENT TRACKING: Manage your tasks list silently. When responding to the user, do not mention the tasks list, goals, or tasks. Just provide a natural summary of the work you actually did.
+6. SILENT TRACKING: Manage your tasks list silently. When you have completed all tasks, your final text response MUST be a friendly summary of what you did. NEVER output raw tool logs (like "Marked #3 as done") as your response.
 7. NEVER write out tool calls as raw JSON in your text response (e.g. `{"name": "tasks_done"}`). You must invoke tools using the native tool-calling API.
 
 ## Available Tools

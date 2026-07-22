@@ -481,6 +481,8 @@ def create_artifact(name: str, content: str) -> str:
     """
     Creates a Markdown artifact file for plans, designs, or research.
     Ensure 'name' is alphanumeric with underscores (e.g., 'database_schema').
+    IMPORTANT: When creating an artifact, YOU MUST write a highly detailed, 
+    comprehensive, and long document. Do not output short summaries.
     """
     import os
     from pathlib import Path

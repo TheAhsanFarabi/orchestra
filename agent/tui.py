@@ -699,6 +699,19 @@ class AgentActivity:
 
 # ── Slash-command handler ─────────────────────────────────────────────────────
 
+def _render_history(memory: MemoryLayer, theme: Theme) -> None:
+    """Print the conversation history natively into the terminal context."""
+    if memory.is_empty:
+        return
+        
+    for turn in memory.turns:
+        if turn.role == "user":
+            if "System Auto-Intercept:" not in turn.content and "(System Note:" not in turn.content:
+                console.print(f"\n[bold {theme.accent}]>[/bold {theme.accent}] {turn.content}")
+        elif turn.role == "assistant" and turn.content.strip():
+            console.print(Panel(Markdown(turn.content, code_theme="monokai"), border_style=theme.border, box=box.ROUNDED))
+
+
 def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
     """
     Dispatch one slash command.
@@ -981,7 +994,7 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
         if not arg or arg == "list":
             sessions = []
             if SESSION_DIR.exists():
-                sessions = [p.stem for p in SESSION_DIR.glob("*.json") if not p.stem.endswith("_todo")]
+                sessions = [p.stem for p in SESSION_DIR.glob("*.json") if not p.stem.endswith("_tasks")]
             if not sessions:
                 _info("No saved sessions.", theme)
             else:
@@ -1040,6 +1053,7 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
                 cfg.save()
                 state["memory"] = MemoryLayer.load(target)
                 _info(f"Resumed session: {arg}", theme)
+                _render_history(state["memory"], theme)
             else:
                 _warn(f"Session not found: {arg}", theme)
 
@@ -1085,6 +1099,7 @@ def run_tui(model: str | None = None, verbose: bool = False) -> None:
 
     active_session_file = SESSION_DIR / f"{cfg.active_session}.json"
     memory = MemoryLayer.load(active_session_file)
+    _render_history(memory, theme)
 
     state: dict[str, Any] = {
         "cfg":           cfg,

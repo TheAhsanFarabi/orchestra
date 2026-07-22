@@ -130,6 +130,7 @@ SLASH_COMMANDS: dict[str, str] = {
     "/prompt":       "Load a prompt template  —  /prompt [name]",
     "/add":          "Inject a file's content into AI context  —  /add <file>",
     "/session":      "Manage chat sessions  —  /session [list|new|delete|<hash>]",
+    "/artifact":     "Manage AI-generated artifacts  —  /artifact [list|view|add]",
     "/tasks":         "Manage your tasks list",
     "/goal":         "Manage your overarching goal",
     "/clear":        "Clear conversation",
@@ -994,6 +995,60 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
                     _info(f"Loaded {len(content)} chars from {arg} into next context.", theme)
                 except Exception as e:
                     _error(f"Could not read {arg}: {e}", theme)
+
+    # ── artifact ──────────────────────────────────────────────────────────
+    elif cmd == "/artifact":
+        artifact_dir = Path.home() / ".orchestra" / "artifacts"
+        artifact_dir.mkdir(parents=True, exist_ok=True)
+        
+        sub_parts = arg.split(maxsplit=1)
+        sub       = sub_parts[0].lower() if sub_parts else ""
+        sub_arg   = sub_parts[1].strip() if len(sub_parts) > 1 else ""
+
+        if not arg or sub == "list":
+            artifacts = list(artifact_dir.glob("*.md"))
+            if not artifacts:
+                _warn("No artifacts found in ~/.orchestra/artifacts/", theme)
+                _info("  [dim]/artifact view <name>  ·  /artifact add <name>[/]", theme)
+            else:
+                tbl = Table(box=box.SIMPLE_HEAD, border_style="dim", header_style=theme.accent)
+                tbl.add_column("Artifact Name", style="bold")
+                tbl.add_column("Size", style="dim")
+                for a in artifacts:
+                    size = f"{a.stat().st_size / 1024:.1f} KB"
+                    tbl.add_row(a.name, size)
+                console.print(Panel(tbl, title=f"[{theme.accent}]Saved Artifacts[/]", border_style=theme.border, box=box.ROUNDED))
+                _info("  [dim]/artifact view <name>  ·  /artifact add <name>[/]", theme)
+                
+        elif sub == "view":
+            if not sub_arg:
+                _warn("Usage: /artifact view <name>", theme)
+            else:
+                name = sub_arg if sub_arg.endswith(".md") else f"{sub_arg}.md"
+                path = artifact_dir / name
+                if not path.is_file():
+                    _error(f"Artifact not found: {name}", theme)
+                else:
+                    content = path.read_text(encoding="utf-8")
+                    console.print(Panel(Markdown(content, code_theme="monokai"), title=f"[{theme.accent}]{name}[/]", border_style=theme.border, box=box.ROUNDED))
+                    
+        elif sub == "add":
+            if not sub_arg:
+                _warn("Usage: /artifact add <name>", theme)
+            else:
+                name = sub_arg if sub_arg.endswith(".md") else f"{sub_arg}.md"
+                path = artifact_dir / name
+                if not path.is_file():
+                    _error(f"Artifact not found: {name}", theme)
+                else:
+                    try:
+                        content = path.read_text(encoding="utf-8")
+                        state["context_buffer"] += f"\n\n--- Artifact: {name} ---\n{content}\n"
+                        _info(f"Loaded {len(content)} chars from {name} into next context.", theme)
+                    except Exception as e:
+                        _error(f"Could not read {name}: {e}", theme)
+        else:
+            _warn("Usage: /artifact [list] | /artifact view <name> | /artifact add <name>", theme)
 
     # ── session ───────────────────────────────────────────────────────────
     elif cmd == "/session":

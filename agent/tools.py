@@ -477,6 +477,24 @@ def read_url(url: str) -> str:
     except Exception as e:
         return f"Failed to read URL: {e}"
 
+def create_artifact(name: str, content: str) -> str:
+    """
+    Creates a Markdown artifact file for plans, designs, or research.
+    Ensure 'name' is alphanumeric with underscores (e.g., 'database_schema').
+    """
+    import os
+    from pathlib import Path
+    
+    artifact_dir = Path.home() / ".orchestra" / "artifacts"
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    
+    if not name.endswith(".md"):
+        name += ".md"
+        
+    file_path = artifact_dir / name
+    file_path.write_text(content, encoding="utf-8")
+    return f"Artifact created successfully: {file_path}. The user can view it with /artifact view {name.replace('.md', '')}"
+
 # ── Registry ──────────────────────────────────────────────────────────────────
 
 TOOL_REGISTRY: dict[str, object] = {
@@ -500,6 +518,7 @@ TOOL_REGISTRY: dict[str, object] = {
     "search_web":        search_web,
     "search_arxiv":      search_arxiv,
     "read_url":          read_url,
+    "create_artifact":   create_artifact,
 }
 
 # List passed straight to ollama's tools= param.

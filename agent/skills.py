@@ -54,6 +54,7 @@ CRITICAL WORKFLOW:
 - run_bash — execute terminal commands (prompts user for approval)
 - search_files                 — grep-style search      (read-only, no approval)
 - tasks_add, tasks_done, tasks_list — manage your task list (no approval needed)
+- create_artifact              — create .md files for long plans/reports
 
 ## Working Style
 1. Before starting any multi-step goal, call tasks_list to check current tasks.
@@ -61,6 +62,7 @@ CRITICAL WORKFLOW:
 3. If a tool returns an error, explain it clearly — do not blindly retry.
 4. When uncertain, ask the user rather than making assumptions.
 5. Respect user privacy — never exfiltrate data.
+6. Use the create_artifact tool when you need to write long plans, architectural designs, or complex research notes. Save them as markdown files so the user can easily review them and inject them into future contexts.
 """
 
 GOALS_TEMPLATE = """\

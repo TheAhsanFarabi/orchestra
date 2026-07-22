@@ -943,8 +943,8 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
         if arg:
             prompt_content = get_prompt(arg)
             if prompt_content:
-                state["context_buffer"] = state.get("context_buffer", "") + f"\n\n[PROMPT TEMPLATE: {arg}]\n{prompt_content}\n"
-                _info(f"Loaded prompt [{theme.accent}]{arg}[/] into context buffer. It will be sent with your next message.", theme)
+                state["next_input"] = prompt_content
+                _info(f"Loaded prompt [{theme.accent}]{arg}[/] into your input buffer. You can now modify it before sending.", theme)
             else:
                 _error(f"Prompt not found: {arg}", theme)
         else:
@@ -952,12 +952,11 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
             if not prompts:
                 _warn("No prompts found in ~/.orchestra/prompts/", theme)
             else:
-                tbl = Table(box=box.SIMPLE_HEAD, border_style="dim", header_style=theme.accent)
-                tbl.add_column("Prompt Name", style="bold")
-                tbl.add_column("Preview")
+                tbl = Table(box=box.SIMPLE_HEAD, border_style="dim", header_style=theme.accent, show_lines=True)
+                tbl.add_column("Prompt Name", style="bold", ratio=1)
+                tbl.add_column("Full Text", ratio=4)
                 for name, content in prompts.items():
-                    preview = content[:80] + "..." if len(content) > 80 else content
-                    tbl.add_row(name, preview)
+                    tbl.add_row(name, content)
                 console.print(Panel(tbl, title=f"[{theme.accent}]Prompt Library[/]", border_style=theme.border, box=box.ROUNDED))
                 _info("Usage: /prompt <name>", theme)
 
@@ -1122,10 +1121,13 @@ def run_tui(model: str | None = None, verbose: bool = False) -> None:
         try:
             w = shutil.get_terminal_size().columns
             
+            default_text = state.pop("next_input", "")
+            
             user_input: str = state["session"].prompt(
                 _prompt_html(state["cfg"].model, theme),
                 style=pt_style,
                 bottom_toolbar=get_toolbar,
+                default=default_text,
             )
             # Print gradient bottom border to complete the layout
             print(_gradient_rule(theme, w), flush=True)

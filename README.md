@@ -93,7 +93,7 @@ The output is silently added to the AI's context, so your next message can be *"
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 - **User Space Isolation:** All of your personal sessions, goals, prompts, and skills are saved privately in `~/.orchestra/`. Your data is never mixed with the global source code.
 - **Core Loop:** The agent uses an iterative tool-call loop (`loop.py`) with a strict safety cutoff and automatic task enforcement to prevent infinite hallucination loops.
 - **UI:** The TUI is powered by `prompt_toolkit` for async history/autocomplete and `rich` for markdown rendering, layout panels, and live spinners.
@@ -101,5 +101,5 @@ The output is silently added to the AI's context, so your next message can be *"
 ## Contributing
 Contributions are welcome! Whether it's adding new tools (like Git integration), improving the UI, or optimizing the LLM prompts, feel free to open a Pull Request.
 
-## 📄 License
+## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

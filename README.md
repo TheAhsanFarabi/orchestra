@@ -3,7 +3,7 @@
   <h1>Orchestra</h1>
   <p><i>A beautifully crafted, privacy-first, local AI agent powered by Ollama.</i></p>
   
-  <img src="assets/screen_shot.png" alt="Orchestra Screenshot 2" width="800"/>
+  <img src="assets/screen_shot.png" alt="Orchestra Screenshot" width="800"/>
 </div>
 
 ---

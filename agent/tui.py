@@ -94,6 +94,7 @@ from .config import (
     Config, Theme, THEMES, THEME_KEYS, DEFAULT_THEME,
     HISTORY_FILE, SESSION_DIR, VERSION,
 )
+from .prompts import init_prompts, list_prompts, get_prompt
 
 # ── Prompt cycle counter (for tips) ──────────────────────────────────────────
 
@@ -126,6 +127,7 @@ SLASH_COMMANDS: dict[str, str] = {
     "/fast":         "Instantly switch to the fastest CPU-optimized model",
     "/mode":         "Cycle between Action, Plan, and Chat modes",
     "/theme":        "Change the visual theme  —  /theme [name]",
+    "/prompt":       "Load a prompt template  —  /prompt [name]",
     "/add":          "Inject a file's content into AI context  —  /add <file>",
     "/session":      "Manage chat sessions  —  /session [list|new|delete|<hash>]",
     "/tasks":         "Manage your tasks list",
@@ -936,6 +938,29 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
             except (EOFError, KeyboardInterrupt):
                 pass
 
+    # ── prompt ────────────────────────────────────────────────────────────
+    elif cmd == "/prompt":
+        if arg:
+            prompt_content = get_prompt(arg)
+            if prompt_content:
+                state["context_buffer"] = state.get("context_buffer", "") + f"\n\n[PROMPT TEMPLATE: {arg}]\n{prompt_content}\n"
+                _info(f"Loaded prompt [{theme.accent}]{arg}[/] into context buffer. It will be sent with your next message.", theme)
+            else:
+                _error(f"Prompt not found: {arg}", theme)
+        else:
+            prompts = list_prompts()
+            if not prompts:
+                _warn("No prompts found in ~/.orchestra/prompts/", theme)
+            else:
+                tbl = Table(box=box.SIMPLE_HEAD, border_style="dim", header_style=theme.accent)
+                tbl.add_column("Prompt Name", style="bold")
+                tbl.add_column("Preview")
+                for name, content in prompts.items():
+                    preview = content[:80] + "..." if len(content) > 80 else content
+                    tbl.add_row(name, preview)
+                console.print(Panel(tbl, title=f"[{theme.accent}]Prompt Library[/]", border_style=theme.border, box=box.ROUNDED))
+                _info("Usage: /prompt <name>", theme)
+
     # ── add (Context Injection) ───────────────────────────────────────────
     elif cmd == "/add":
         if not arg:
@@ -1048,6 +1073,7 @@ def run_tui(model: str | None = None, verbose: bool = False) -> None:
 
     # ── Load skills + goals (create ~/.orchestra/SKILL.md etc. if absent) ─
     skills_manager.load()
+    init_prompts()
 
     theme   = cfg.current_theme
 

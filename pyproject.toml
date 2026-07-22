@@ -15,6 +15,10 @@ dependencies = [
     "prompt_toolkit>=3",
     "pyfiglet>=1",
     "Pillow>=10.0",
+    "duckduckgo-search>=6.0",
+    "arxiv>=2.1",
+    "beautifulsoup4>=4.12",
+    "requests>=2.31",
 ]
 
 [project.scripts]

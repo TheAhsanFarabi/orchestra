@@ -382,6 +382,101 @@ def run_bash(command: str, cwd: str = ".") -> str:
 from .tasks import tasks_add, tasks_done, tasks_list  # noqa: E402
 
 
+# ── External APIs ─────────────────────────────────────────────────────────────
+
+def search_web(query: str, max_results: int = 5) -> str:
+    """
+    Search the web using DuckDuckGo.
+    Returns snippets of the top search results. Useful for finding up-to-date real world information.
+    """
+    try:
+        from duckduckgo_search import DDGS
+        results = DDGS().text(query, max_results=max_results)
+        if not results:
+            return "No results found."
+        
+        output = []
+        for i, res in enumerate(results, 1):
+            title = res.get("title", "No Title")
+            href = res.get("href", "")
+            body = res.get("body", "")
+            output.append(f"{i}. {title}\nURL: {href}\nSnippet: {body}\n")
+            
+        return "\n".join(output)
+    except ImportError:
+        return "Error: duckduckgo-search package is not installed."
+    except Exception as e:
+        return f"Web search error: {e}"
+
+def search_arxiv(query: str, max_results: int = 3) -> str:
+    """
+    Search the ArXiv database for academic papers.
+    Returns the title, authors, published date, and abstract for the top papers.
+    """
+    try:
+        import arxiv
+        client = arxiv.Client()
+        search = arxiv.Search(
+            query=query,
+            max_results=max_results,
+            sort_by=arxiv.SortCriterion.Relevance
+        )
+        
+        output = []
+        for i, paper in enumerate(client.results(search), 1):
+            authors = ", ".join(a.name for a in paper.authors)
+            output.append(
+                f"{i}. {paper.title}\n"
+                f"Authors: {authors}\n"
+                f"Published: {paper.published.date()}\n"
+                f"URL: {paper.entry_id}\n"
+                f"Abstract: {paper.summary}\n"
+            )
+            
+        if not output:
+            return "No papers found."
+        return "\n".join(output)
+    except ImportError:
+        return "Error: arxiv package is not installed."
+    except Exception as e:
+        return f"ArXiv search error: {e}"
+
+def read_url(url: str) -> str:
+    """
+    Fetch and extract the main text content of a web page by its URL.
+    Useful for reading full articles or documentation pages found via search_web.
+    """
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+        
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.text, "html.parser")
+        
+        # Remove script and style elements
+        for script in soup(["script", "style", "nav", "footer", "header"]):
+            script.extract()
+            
+        text = soup.get_text(separator="\n")
+        
+        # Clean up whitespace
+        lines = (line.strip() for line in text.splitlines())
+        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+        text = "\n".join(chunk for chunk in chunks if chunk)
+        
+        # Truncate if too long
+        if len(text) > 15000:
+            text = text[:15000] + "\n...[Content truncated due to length]"
+            
+        return text
+    except ImportError:
+        return "Error: requests or beautifulsoup4 package is not installed."
+    except Exception as e:
+        return f"Failed to read URL: {e}"
+
 # ── Registry ──────────────────────────────────────────────────────────────────
 
 TOOL_REGISTRY: dict[str, object] = {
@@ -401,6 +496,10 @@ TOOL_REGISTRY: dict[str, object] = {
     "tasks_add":         tasks_add,
     "tasks_done":        tasks_done,
     "tasks_list":        tasks_list,
+    # External API (read-only)
+    "search_web":        search_web,
+    "search_arxiv":      search_arxiv,
+    "read_url":          read_url,
 }
 
 # List passed straight to ollama's tools= param.

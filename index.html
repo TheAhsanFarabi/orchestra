@@ -13,6 +13,8 @@
 
 <style>
   :root{
+    --mouse-x: 50%;
+    --mouse-y: 0%;
     --bg: #0a0d0a;
     --bg-raised: #10140f;
     --pane: #0e120e;
@@ -60,12 +62,16 @@
     content:"";
     position:fixed; inset:0;
     background-image:
-      linear-gradient(rgba(63,166,109,0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(63,166,109,0.025) 1px, transparent 1px);
+      linear-gradient(rgba(63,166,109,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(63,166,109,0.04) 1px, transparent 1px);
     background-size: 42px 42px;
     pointer-events:none;
     z-index:0;
-    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent 70%);
+    mask-image: 
+      radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent 70%),
+      radial-gradient(circle 400px at var(--mouse-x) var(--mouse-y), black, transparent 80%);
+    -webkit-mask-composite: source-over;
+    mask-composite: add;
   }
 
   a{color:inherit;}
@@ -577,69 +583,124 @@
     margin: 40px 0;
     font-family: var(--mono);
     text-align: center;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 24px;
+  }
+  .wf-pipeline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-top: 24px;
+    width: 100%;
+  }
+  .wf-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    width: max-content;
+    padding: 0 20px;
   }
   .wf-node {
     background: var(--pane);
     border: 1px solid var(--border-bright);
     border-radius: var(--radius);
     padding: 16px 24px;
-    width: 260px;
+    width: 200px;
+    min-width: 200px;
     box-shadow: 0 10px 20px -10px rgba(0,0,0,0.5);
     position: relative;
     z-index: 2;
   }
-  .wf-node.user-node { border-color: var(--border); }
   .wf-node.output-node { border-color: var(--green); box-shadow: 0 0 15px var(--green-glow); }
+  .wf-node.human-node { border-color: var(--yellow); }
+  .wf-node.human-node .wf-title { color: var(--yellow); }
   .wf-title { font-size: 14px; font-weight: 600; color: var(--fg); margin-bottom: 6px; }
   .wf-desc { font-size: 12.5px; color: var(--fg-dim); }
   
-  .wf-box {
-    background: rgba(45, 69, 48, 0.05);
-    border: 1px dashed var(--green-dim);
-    border-radius: 12px;
-    padding: 24px;
+  .execution-loop-box {
+    border: 1px dashed var(--border-bright);
+    padding: 40px 24px 24px 24px;
+    border-radius: var(--radius);
+    background: rgba(0, 0, 0, 0.2);
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     position: relative;
+    gap: 16px;
+    margin: 0 8px;
+    width: max-content;
   }
-  .wf-box-title {
+  .execution-loop-box .wf-box-title {
     position: absolute;
     top: -12px;
+    left: 24px;
     background: var(--bg);
     padding: 0 12px;
-    color: var(--green);
+    color: var(--fg-dim);
     font-size: 13px;
     font-weight: 600;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
   }
-  .wf-grid {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-top: 10px;
-  }
-  
   .wf-arrow {
     color: var(--green);
     font-size: 24px;
-    margin: 12px 0;
+    margin: 0 4px;
     line-height: 1;
     animation: pulse-arrow 1.5s infinite;
   }
-  .wf-arrow-h {
-    color: var(--green);
-    font-size: 24px;
-    animation: pulse-arrow 1.5s infinite;
+  .wf-arrow-down {
+    margin: 8px 0;
   }
-  
+  .feedback-arrow-container {
+    position: absolute;
+    bottom: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    padding: 4px 12px;
+    border: 1px solid var(--border-bright);
+    border-radius: 12px;
+  }
+  .feedback-arrow-container span {
+    font-size: 11px;
+    color: var(--fg-dim);
+    font-family: var(--sans);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .wf-arrow-loop {
+    color: inherit;
+    font-size: 20px;
+  }
+
+  /* Animated Execution Loop Highlights */
+  .anim-node {
+    animation: highlight-node 6s infinite;
+  }
+  .anim-node-1 { animation-delay: 0s; }
+  .anim-node-2 { animation-delay: 1.5s; }
+  .anim-node-3 { animation-delay: 3.0s; }
+  .anim-loop { animation: highlight-text 6s infinite; animation-delay: 4.5s; }
+
   @keyframes pulse-arrow {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.4; transform: scale(0.9); }
   }
-
-  @media (max-width: 860px) {
-    .wf-grid { flex-direction: column; }
-    .wf-arrow-h { transform: rotate(90deg); margin: 8px 0; }
+  @keyframes highlight-node {
+    0%, 20% { border-color: var(--green); box-shadow: 0 0 15px var(--green-glow); }
+    25%, 100% { border-color: var(--border-bright); box-shadow: 0 10px 20px -10px rgba(0,0,0,0.5); }
+  }
+  @keyframes highlight-text {
+    0%, 20% { color: var(--green); text-shadow: 0 0 8px var(--green-glow); border-color: var(--green); box-shadow: 0 0 15px var(--green-glow); }
+    25%, 100% { color: var(--fg-dim); text-shadow: none; border-color: var(--border-bright); box-shadow: none; }
   }
 
   /* --- Comparison Table CSS --- */
@@ -735,6 +796,30 @@
     font-size: 13px;
     color: var(--fg-dim);
   }
+  
+  /* --- Walking Logo Animation --- */
+  .walking-logo {
+    position: absolute;
+    top: -40px;
+    width: 40px;
+    height: auto;
+    image-rendering: pixelated;
+    z-index: 10;
+    animation: 
+      walkHorizontal 10s linear infinite,
+      walkBob 0.3s ease-in-out infinite alternate;
+  }
+  @keyframes walkHorizontal {
+    0%   { left: 5%; transform: scaleX(1); }
+    49%  { left: 85%; transform: scaleX(1); }
+    50%  { left: 85%; transform: scaleX(-1); }
+    99%  { left: 5%; transform: scaleX(-1); }
+    100% { left: 5%; transform: scaleX(1); }
+  }
+  @keyframes walkBob {
+    0%   { margin-top: 0px; }
+    100% { margin-top: -6px; }
+  }
 </style>
 </head>
 <body>
@@ -747,13 +832,15 @@
     </div>
     <div class="term-nav">
       <div class="theme-switcher">
-        <button class="theme-btn active" data-theme="default">Default</button>
-        <button class="theme-btn" data-theme="dracula">Dracula</button>
-        <button class="theme-btn" data-theme="nord">Nord</button>
+        <button id="theme-btn" class="theme-btn active">Theme: Default</button>
       </div>
-      <a href="#features">features</a>
+      <span class="easter-egg-hint" style="font-size:11px; color:var(--fg-dim); margin-right:10px;">[Hint: Shift+Tab]</span>
+      <a href="#features">capabilities</a>
+      <a href="#workflow">workflow</a>
+      <a href="#compare">compare</a>
       <a href="#action">demo</a>
-      <a href="#start">get started</a>
+      <a href="#commands">commands</a>
+      <a href="#start">download</a>
       <a class="gh-link" href="https://github.com/TheAhsanFarabi/orchestra" target="_blank" rel="noopener">
         <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
         GitHub
@@ -797,8 +884,8 @@
          </div>
          <div class="term-suggestions">
             Try: <button class="term-cmd-btn" data-cmd="/theme dracula">/theme dracula</button> | 
-            <button class="term-cmd-btn" data-cmd="!ls">!ls</button> | 
-            <button class="term-cmd-btn" data-cmd="/help">/help</button>
+            <button class="term-cmd-btn" data-cmd="/task build a react app">/task build a react app</button> | 
+            <button class="term-cmd-btn" data-cmd="/debug fix memory leak">/debug fix memory leak</button>
          </div>
          <div class="term-input-line">
             <span class="prompt">you ›</span>
@@ -878,35 +965,79 @@
     </div>
     
     <div class="workflow-diagram">
-       <div class="wf-node user-node">
-          <div class="wf-title">User Prompt</div>
-          <div class="wf-desc">"Build a react app..."</div>
-       </div>
-       <div class="wf-arrow">↓</div>
-       <div class="wf-box">
-          <div class="wf-box-title">Orchestra Agent Loop</div>
-          <div class="wf-grid">
-             <div class="wf-node agent-node">
-                <div class="wf-title">1. Reason & Plan</div>
-                <div class="wf-desc">Breaks task into steps</div>
-             </div>
-             <div class="wf-arrow-h">→</div>
-             <div class="wf-node agent-node">
-                <div class="wf-title">2. Use Tools</div>
-                <div class="wf-desc">Search, Bash, Read Code</div>
-             </div>
-             <div class="wf-arrow-h">→</div>
-             <div class="wf-node agent-node">
-                <div class="wf-title">3. Verify</div>
-                <div class="wf-desc">Checks if output meets goal</div>
-             </div>
-          </div>
-       </div>
-       <div class="wf-arrow">↓</div>
-       <div class="wf-node output-node">
-          <div class="wf-title">Done</div>
-          <div class="wf-desc">Verified code saved to disk</div>
-       </div>
+        <div class="wf-pipeline">
+           
+           <div class="wf-row" style="justify-content: flex-end;">
+              <!-- Node 1 -->
+              <div class="wf-node human-node">
+                 <div class="wf-title">1. Set Goal</div>
+                 <div class="wf-desc">Set a prompt from library or define a custom goal</div>
+              </div>
+              <div class="wf-arrow">→</div>
+              
+              <!-- Node 2 -->
+              <div class="wf-node agent-node">
+                 <div class="wf-title">2. Understand Context</div>
+                 <div class="wf-desc">Read workspace state and gather context</div>
+              </div>
+              <div class="wf-arrow">→</div>
+              
+              <!-- Node 3 -->
+              <div class="wf-node agent-node">
+                 <div class="wf-title">3. Plan & Artifacts</div>
+                 <div class="wf-desc">Create a step-by-step implementation plan</div>
+              </div>
+              <div class="wf-arrow">→</div>
+              
+              <!-- Node 4 -->
+              <div class="wf-node human-node">
+                 <div class="wf-title">4. Human Approval</div>
+                 <div class="wf-desc">User reviews and approves the plan</div>
+              </div>
+           </div>
+           
+           <!-- Connector between rows (Aligned under Node 4) -->
+           <div style="width: 100%; display: flex; justify-content: flex-end; padding-right: 88px;">
+              <div class="wf-arrow wf-arrow-down">↓</div>
+           </div>
+           
+           <div class="wf-row" style="justify-content: flex-end;">
+              <!-- Final Node -->
+              <div class="wf-node output-node">
+                 <div class="wf-title">8. Summary</div>
+                 <div class="wf-desc">Mark goal done and provide final summary</div>
+              </div>
+              <div class="wf-arrow">←</div>
+              
+              <!-- Execution Loop Box -->
+              <div class="execution-loop-box" style="flex-direction: row-reverse;">
+                 <div class="wf-box-title" style="right: 24px; left: auto;">Execution Loop</div>
+                 
+                 <div class="wf-node agent-node anim-node anim-node-3">
+                    <div class="wf-title">7. Verify Task</div>
+                    <div class="wf-desc">Check if task succeeded.</div>
+                 </div>
+                 <div class="wf-arrow" style="transform: scaleX(-1);">→</div>
+                 
+                 <div class="wf-node agent-node anim-node anim-node-2">
+                    <div class="wf-title">6. Execute Task</div>
+                    <div class="wf-desc">Run tools, edit files. <br><span style="color:var(--yellow);font-size:11.5px;">(Ask human permission if required)</span></div>
+                 </div>
+                 <div class="wf-arrow" style="transform: scaleX(-1);">→</div>
+                 
+                 <div class="wf-node agent-node anim-node anim-node-1">
+                    <div class="wf-title">5. Task Breakdown</div>
+                    <div class="wf-desc">Break approved plan into sub-tasks</div>
+                 </div>
+                 
+                 <div class="feedback-arrow-container anim-loop">
+                    <div class="wf-arrow-loop" style="transform: scaleX(-1);">↻</div>
+                    <span>Loop next task</span>
+                 </div>
+              </div>
+           </div>
+           
+        </div>
     </div>
   </section>
 
@@ -994,7 +1125,7 @@
   <hr class="divider">
 
   <!-- COMMANDS -->
-  <section class="section">
+  <section class="section" id="commands">
     <div class="section-head">
       <span class="section-tag">Reference</span>
       <h2>Slash commands</h2>
@@ -1193,6 +1324,7 @@ pip install -e .">copy</button>
   <!-- CREATOR'S NOTE -->
   <section class="section" id="creator-note">
     <div class="quote-container">
+      <img src="assets/logo.png" class="walking-logo" alt="Walking Orchestra Logo">
       <span class="quote-mark">"</span>
       <blockquote class="creator-quote">
         <p>Orchestra was born from true human-AI collaboration. By blending the raw power of agentic coding with deliberate engineering intuition, we forged a completely unique value proposition. Version 1 is the culmination of 48 hours of relentless building, testing, and manual curation. But this is just the beginning. The upcoming updates will redefine the landscape. Ultimately, my north star remains unchanged: advancing environmental sustainability, championing human-centered AI, and ensuring uncompromising AI safety.</p>
@@ -1359,18 +1491,23 @@ pip install -e .">copy</button>
   });
 
   // ---------- Theme Switcher ----------
-  document.querySelectorAll('.theme-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const theme = btn.getAttribute('data-theme');
+  const themes = ['default', 'dracula', 'nord'];
+  const themeNames = ['Default', 'Dracula', 'Nord'];
+  let currentThemeIdx = 0;
+  const themeBtn = document.getElementById('theme-btn');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', () => {
+      currentThemeIdx = (currentThemeIdx + 1) % themes.length;
+      const theme = themes[currentThemeIdx];
+      themeBtn.innerText = `Theme: ${themeNames[currentThemeIdx]}`;
+      
       if (theme === 'default') {
         document.documentElement.removeAttribute('data-theme');
       } else {
         document.documentElement.setAttribute('data-theme', theme);
       }
     });
-  });
+  }
 
   // ---------- Feature Cards Glow ----------
   document.querySelectorAll('.feature').forEach(card => {
@@ -1536,17 +1673,44 @@ pip install -e .">copy</button>
          termTyping.innerHTML = '<span class="cursor">_</span>';
          
          // Simulate response
-         let response = '';
          if (cmd === '/theme dracula') {
-           response = '<div class="log-line"><span class="ok">✓</span> Switched active theme to <b>dracula</b></div>';
+           termHistory.innerHTML += '<div class="log-line"><span class="ok">✓</span> Switched active theme to <b>dracula</b></div>';
            const draculaBtn = document.querySelector('[data-theme="dracula"]');
            if (draculaBtn) draculaBtn.click();
-         } else if (cmd === '!ls') {
-           response = '<div class="log-line">README.md<br>index.html<br>package.json</div>';
-         } else if (cmd === '/help') {
-           response = '<div class="log-line">Available commands:<br>/theme - switch theme<br>/add - add context<br>!cmd - run bash command</div>';
+         } else if (cmd === '/task build a react app') {
+            const steps = [
+              '<div class="log-line" style="color:var(--green);">[agent] Reasoning... I need to scaffold a new Vite project.</div>',
+              '<div class="log-line" style="color:var(--fg-dim);">[sys] running npm create vite@latest...</div>',
+              '<div class="log-line">✔ Project scaffolded in /app</div>',
+              '<div class="log-line" style="color:var(--green);">[agent] Installing dependencies now...</div>',
+              '<div class="log-line" id="progress-bar-1">[sys] [||........] 20%</div>'
+            ];
+            for (let step of steps) {
+              termHistory.innerHTML += step;
+              termHistory.parentElement.scrollTop = termHistory.parentElement.scrollHeight;
+              await new Promise(r => setTimeout(r, 600 + Math.random()*500));
+            }
+            const pb = document.getElementById('progress-bar-1');
+            if (pb) {
+              await new Promise(r => setTimeout(r, 400)); pb.innerHTML = '[sys] [||||||....] 60%';
+              await new Promise(r => setTimeout(r, 400)); pb.innerHTML = '[sys] [||||||||||] 100%';
+            }
+            termHistory.innerHTML += '<div class="log-line"><span class="ok">✓</span> Task complete!</div>';
+         } else if (cmd === '/debug fix memory leak') {
+            const steps = [
+              '<div class="log-line" style="color:var(--green);">[agent] Scanning recent heap dumps...</div>',
+              '<div class="log-line" style="color:var(--fg-dim);">[sys] reading memory.prof...</div>',
+              '<div class="log-line" style="color:var(--yellow);">⚠ Found unclosed listener in App.js:45</div>',
+              '<div class="log-line" style="color:var(--green);">[agent] Applying patch...</div>',
+              '<div class="log-line" style="color:var(--fg-dim);">[sys] write_file App.js</div>',
+              '<div class="log-line"><span class="ok">✓</span> Memory leak patched. Tests passing.</div>'
+            ];
+            for (let step of steps) {
+              termHistory.innerHTML += step;
+              termHistory.parentElement.scrollTop = termHistory.parentElement.scrollHeight;
+              await new Promise(r => setTimeout(r, 800 + Math.random()*400));
+            }
          }
-         termHistory.innerHTML += response;
          
          // Scroll to bottom
          termHistory.parentElement.scrollTop = termHistory.parentElement.scrollHeight;
@@ -1572,6 +1736,11 @@ pip install -e .">copy</button>
 
   const particles = [];
   document.addEventListener('mousemove', (e) => {
+    // Update variables for background grid highlight
+    document.documentElement.style.setProperty('--mouse-x', `${e.clientX}px`);
+    document.documentElement.style.setProperty('--mouse-y', `${e.clientY}px`);
+    
+    // Create particles
     for(let i=0; i<1; i++) {
       particles.push({
         x: e.clientX,

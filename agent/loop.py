@@ -103,21 +103,24 @@ def run_agent(
 
     for iteration in range(MAX_ITERATIONS):
         current_tools = active_tools
-        # Force planning ONLY if we are in action mood, it's the very first iteration,
-        # AND there are no pending tasks (meaning it's a brand new goal).
-        if mood == "action" and iteration == 0 and not has_pending_tasks:
-            current_tools = [t for t in active_tools if getattr(t, "__name__", "") in PLAN_TOOLS]
-            
-            # Inject a silent reminder for this turn only so the LLM doesn't stop and wait
-            if len(messages) > 0 and messages[-1]["role"] == "user":
-                messages[-1]["content"] += "\n\n(System Note: You must use tasks_add to break this down now. Do not return plain text only. You must output tool calls.)"
-        elif mood == "action" and iteration == 0 and has_pending_tasks:
-            if len(messages) > 0 and messages[-1]["role"] == "user":
-                messages[-1]["content"] += "\n\n(System Note: You have pending tasks. You MUST use `tasks_done` when a step is finished, and `tasks_list` to check your remaining tasks. Do not respond with plain text without addressing the tasks!)"
+        chat_messages = list(messages)
+        if len(chat_messages) > 0:
+            last_msg = dict(chat_messages[-1])
+            chat_messages[-1] = last_msg
+
+            if mood == "action":
+                t_list = TaskList.load()
+                pending_ids = [i.id for i in t_list.items if i.status == "pending"]
+                
+                if pending_ids:
+                    last_msg["content"] += f"\n\n[System Note: You have pending tasks {pending_ids}. You MUST call `tasks_done` immediately when a step is finished. Do not speak to the user until you mark it done!]"
+                elif iteration == 0:
+                    current_tools = [t for t in active_tools if getattr(t, "__name__", "") in PLAN_TOOLS]
+                    last_msg["content"] += "\n\n[System Note: You must use `tasks_add` to break this down now. Do not return plain text only. You must output tool calls.]"
 
         response = chat(
             model=model,
-            messages=messages,
+            messages=chat_messages,
             tools=current_tools if current_tools else None,
         )
         msg = response["message"]
@@ -201,16 +204,9 @@ def run_agent(
             if on_tool_call:
                 on_tool_call(name, args, result)
 
-            result_str = str(result)
-            if mood == "action" and name not in ("tasks_add", "tasks_done", "tasks_list"):
-                t_list = TaskList.load()
-                pending_ids = [i.id for i in t_list.items if i.status == "pending"]
-                if pending_ids:
-                    result_str += f"\n\n(System Note: You have pending tasks {pending_ids}. If you just completed one, you MUST call `tasks_done` immediately. Do not speak to the user until you mark it done!)"
-
             messages.append({
                 "role": "tool",
-                "content": result_str,
+                "content": str(result),
             })
 
         # loop continues -> model sees tool results and decides next step

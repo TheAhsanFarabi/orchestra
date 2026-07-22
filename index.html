@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orchestra — A local, terminal-native AI agent</title>
+<meta name="description" content="Orchestra is a privacy-first, terminal-native AI coding agent powered entirely by Ollama. No API keys, no cloud, no telemetry.">
+<link rel="icon" type="image/png" href="assets/logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=VT323&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg: #0a0d0a;
+    --bg-raised: #10140f;
+    --pane: #0e120e;
+    --border: #1f2b21;
+    --border-bright: #2d4530;
+    --green: #3fa66d;
+    --green-dim: #2d8659;
+    --green-glow: rgba(63,166,109,0.35);
+    --amber: #d4a24e;
+    --fg: #e8e6df;
+    --fg-dim: #9aa39c;
+    --fg-faint: #5e685f;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --radius: 6px;
+  }
+  
+  html[data-theme="dracula"] {
+    --bg: #282a36; --bg-raised: #343746; --pane: #44475a;
+    --border: #44475a; --border-bright: #6272a4;
+    --green: #50fa7b; --green-dim: #38b056; --green-glow: rgba(80,250,123,0.35);
+    --amber: #f1fa8c; --fg: #f8f8f2; --fg-dim: #e2e2dc; --fg-faint: #6272a4;
+  }
+  html[data-theme="nord"] {
+    --bg: #2e3440; --bg-raised: #3b4252; --pane: #434c5e;
+    --border: #4c566a; --border-bright: #81a1c1;
+    --green: #a3be8c; --green-dim: #8fbcbb; --green-glow: rgba(163,190,140,0.35);
+    --amber: #ebcb8b; --fg: #eceff4; --fg-dim: #e5e9f0; --fg-faint: #d8dee9;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--fg);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* faint scanline / grid texture */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(63,166,109,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(63,166,109,0.025) 1px, transparent 1px);
+    background-size: 42px 42px;
+    pointer-events:none;
+    z-index:0;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent 70%);
+  }
+
+  a{color:inherit;}
+  ::selection{background:var(--green-glow); color:#fff;}
+
+  :focus-visible{
+    outline:2px solid var(--green);
+    outline-offset:2px;
+  }
+
+  .wrap{max-width:1080px; margin:0 auto; padding:0 24px;}
+
+  /* ---------- persistent terminal chrome ---------- */
+  .term-bar{
+    position:sticky; top:0; z-index:50;
+    background:rgba(10,13,10,0.88);
+    backdrop-filter: blur(10px);
+    border-bottom:1px solid var(--border);
+  }
+  .term-bar-inner{
+    max-width:1080px; margin:0 auto; padding:0 24px;
+    display:flex; align-items:center; justify-content:space-between;
+    height:52px;
+  }
+  .term-dots{display:flex; gap:7px; align-items:center;}
+  .term-dots span{width:11px; height:11px; border-radius:50%; display:inline-block;}
+  .dot-r{background:#e0605a;} .dot-y{background:#e0b45a;} .dot-g{background:#5ac989;}
+  .term-title{
+    font-family:var(--mono); font-size:12.5px; color:var(--fg-faint);
+    letter-spacing:0.02em;
+  }
+  .term-brand{display:flex; align-items:center; gap:9px; font-family:var(--mono); font-weight:600; font-size:14.5px; color:var(--fg);}
+  .term-brand img{width:40px; height:20px; image-rendering:pixelated;}
+  .term-nav{display:flex; gap:28px; align-items:center;}
+  .term-nav a{
+    font-family:var(--mono); font-size:13px; color:var(--fg-dim);
+    text-decoration:none; transition:color .15s ease;
+  }
+  .term-nav a:hover{color:var(--green);}
+  .term-nav .gh-link{
+    display:flex; align-items:center; gap:6px;
+    color:var(--fg); border:1px solid var(--border-bright);
+    padding:6px 12px; border-radius:var(--radius);
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .term-nav .gh-link:hover{border-color:var(--green); background:rgba(63,166,109,0.08);}
+  .term-nav .gh-link svg{width:15px; height:15px;}
+
+  .theme-switcher { display: flex; gap: 6px; }
+  .theme-btn { 
+    background: transparent; border: 1px solid var(--border-bright); color: var(--fg-dim);
+    font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius: 4px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .theme-btn:hover, .theme-btn.active { color: var(--green); border-color: var(--green); background: rgba(63,166,109,0.1); }
+
+  @media (max-width:720px){
+    .term-nav a:not(.gh-link){display:none;}
+    .theme-switcher {display:none;}
+  }
+
+  /* ---------- generic pane component ---------- */
+  .pane{
+    background:var(--pane);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    overflow:hidden;
+  }
+  .pane-bar{
+    display:flex; align-items:center; gap:8px;
+    padding:9px 14px;
+    background:var(--bg-raised);
+    border-bottom:1px solid var(--border);
+    font-family:var(--mono); font-size:12px; color:var(--fg-faint);
+  }
+  .pane-bar .term-dots span{width:8px; height:8px;}
+  .pane-body{padding:20px;}
+
+  section{position:relative; z-index:1;}
+
+  /* ---------- hero ---------- */
+  .hero{padding:96px 0 72px;}
+  .hero-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+    margin-bottom: 64px;
+  }
+  .hero-text {
+    flex: 1;
+  }
+  .hero-logo-container {
+    flex-shrink: 0;
+    cursor: pointer;
+    perspective: 1000px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+  .chat-bubble {
+    position: absolute;
+    top: -20px;
+    right: 20px;
+    background: var(--pane);
+    border: 1px solid var(--green);
+    color: var(--green);
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-family: var(--mono);
+    font-size: 13px;
+    white-space: nowrap;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    animation: float-bubble 2s infinite ease-in-out;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .chat-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    right: 24px;
+    width: 10px;
+    height: 10px;
+    background: var(--pane);
+    border-right: 1px solid var(--green);
+    border-bottom: 1px solid var(--green);
+    transform: rotate(45deg);
+  }
+  @keyframes float-bubble {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-5px) scale(1); }
+  }
+  .hero-logo {
+    width: 400px;
+    height: auto;
+    image-rendering: pixelated;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: hero-shake 4s ease-in-out infinite;
+    transform-origin: center center;
+  }
+  
+  @keyframes hero-shake {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-6px) rotate(-2deg); }
+    75% { transform: translateY(6px) rotate(2deg); }
+  }
+
+  @media (max-width: 860px) {
+    .hero-top {
+      flex-direction: column-reverse;
+      align-items: flex-start;
+      margin-bottom: 48px;
+    }
+    .hero-logo-container {
+      align-self: center;
+      margin-bottom: 20px;
+    }
+  }
+
+  .hero-eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--mono); font-size:12.5px; color:var(--green);
+    border:1px solid var(--border-bright); border-radius:99px;
+    padding:5px 12px; margin-bottom:28px;
+  }
+  .hero-eyebrow .blink{
+    width:6px; height:6px; border-radius:50%; background:var(--green);
+    animation:blink 1.4s steps(1) infinite;
+  }
+  @keyframes blink{50%{opacity:0.15;}}
+
+  h1{
+    font-family:var(--mono);
+    font-weight:600;
+    font-size:clamp(2.1rem, 5vw, 3.4rem);
+    line-height:1.12;
+    letter-spacing:-0.01em;
+    margin:0 0 24px;
+    max-width:16ch;
+  }
+  h1 .accent{color:var(--green);}
+
+  .hero-sub{
+    font-size:1.15rem; color:var(--fg-dim);
+    max-width:56ch; margin:0 0 36px;
+  }
+  .hero-sub code{
+    font-family:var(--mono); color:var(--fg);
+    background:var(--bg-raised); border:1px solid var(--border);
+    padding:1px 6px; border-radius:4px; font-size:0.9em;
+  }
+
+  .cta-row{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:0;}
+  .btn{
+    font-family:var(--mono); font-size:14px; font-weight:500;
+    padding:12px 22px; border-radius:var(--radius);
+    text-decoration:none; display:inline-flex; align-items:center; gap:8px;
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
+    cursor:pointer; border:1px solid transparent;
+  }
+  .btn-primary{
+    background:var(--green-dim); color:#06140b;
+    box-shadow:0 0 0 0 var(--green-glow);
+  }
+  .btn-primary:hover{background:var(--green); box-shadow:0 0 24px var(--green-glow); transform:translateY(-1px);}
+  .btn-ghost{
+    border-color:var(--border-bright); color:var(--fg);
+  }
+  .btn-ghost:hover{border-color:var(--green); color:var(--green); transform:translateY(-1px);}
+
+  .hero-shot{
+    border-radius:8px;
+    box-shadow:0 40px 80px -30px rgba(0,0,0,0.7), 0 0 0 1px var(--border);
+  }
+  .hero-shot img{display:block; width:100%; border-radius:0 0 7px 7px;}
+
+  /* ---------- section headers ---------- */
+  .section{padding:80px 0;}
+  .section-head{max-width:640px; margin:0 0 48px;}
+  .section-tag{
+    font-family:var(--mono); font-size:12.5px; color:var(--green);
+    text-transform:uppercase; letter-spacing:0.08em; margin-bottom:12px; display:block;
+  }
+  .section-head h2{
+    font-family:var(--mono); font-size:clamp(1.5rem,3vw,2.1rem);
+    font-weight:600; margin:0 0 14px; letter-spacing:-0.01em;
+  }
+  .section-head p{color:var(--fg-dim); font-size:1.05rem; max-width:52ch; margin:0;}
+
+  hr.divider{
+    border:none; height:1px; background:var(--border); margin:0;
+  }
+
+  /* ---------- feature grid ---------- */
+  .grid{
+    display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;
+  }
+  @media (max-width:860px){.grid{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:560px){.grid{grid-template-columns:1fr;}}
+
+  .feature{
+    background:var(--pane); border:1px solid var(--border); border-radius:var(--radius);
+    padding:22px; transition:border-color .15s ease, transform .15s ease;
+  }
+  .feature:hover{border-color:var(--border-bright); transform:translateY(-2px);}
+  .feature-icon{
+    width:34px; height:34px; border-radius:7px;
+    background:rgba(63,166,109,0.1); border:1px solid var(--border-bright);
+    display:flex; align-items:center; justify-content:center; margin-bottom:16px;
+    color:var(--green);
+  }
+  .feature-icon svg{width:17px; height:17px;}
+  .feature h3{font-size:1rem; margin:0 0 8px; font-weight:600; font-family:var(--sans);}
+  .feature p{color:var(--fg-dim); font-size:0.92rem; margin:0; line-height:1.55;}
+
+  /* ---------- action log showcase ---------- */
+  .log-line{
+    font-family:var(--mono); font-size:13.5px; padding:3px 0;
+    color:var(--fg-dim); white-space:pre-wrap;
+  }
+  .log-line .arrow{color:var(--green); margin-right:8px;}
+  .log-line .ok{color:var(--green);}
+  .log-line b{color:var(--fg); font-weight:600;}
+  .log-line.you{color:var(--fg); margin-bottom:10px;}
+  .log-line.you .prompt{color:var(--green); font-weight:600;}
+
+  /* ---------- commands table ---------- */
+  .cmd-table{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:13.5px;}
+  .cmd-table th{
+    text-align:left; padding:10px 16px; color:var(--fg-faint);
+    font-weight:500; border-bottom:1px solid var(--border); font-size:11.5px;
+    text-transform:uppercase; letter-spacing:0.06em;
+  }
+  .cmd-table td{padding:11px 16px; border-bottom:1px solid var(--border);}
+  .cmd-table tr:last-child td{border-bottom:none;}
+  .cmd-table td:first-child{color:var(--green); white-space:nowrap;}
+  .cmd-table td:last-child{color:var(--fg-dim); font-family:var(--sans); font-size:14px;}
+  .cmd-table tr:hover td{background:rgba(63,166,109,0.04);}
+
+  /* ---------- install / get started ---------- */
+  .install-shell{
+    background:var(--pane); border:1px solid var(--border); border-radius:var(--radius);
+    overflow:hidden;
+  }
+
+  .os-tabs{
+    display:flex; align-items:stretch; gap:0;
+    background:var(--bg-raised); border-bottom:1px solid var(--border);
+    overflow-x:auto;
+  }
+  .os-tab{
+    display:flex; align-items:center; gap:9px;
+    font-family:var(--mono); font-size:13px; color:var(--fg-dim);
+    background:transparent; border:none; border-right:1px solid var(--border);
+    padding:13px 20px; cursor:pointer; white-space:nowrap;
+    transition:color .15s ease, background .15s ease;
+    position:relative;
+  }
+  .os-tab svg{width:15px; height:15px; opacity:0.75; flex-shrink:0;}
+  .os-tab:hover{color:var(--fg); background:rgba(63,166,109,0.05);}
+  .os-tab.active{color:var(--fg); background:var(--pane);}
+  .os-tab.active svg{opacity:1; color:var(--green);}
+  .os-tab.active::after{
+    content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px;
+    background:var(--green);
+  }
+  .os-tab .detected-pill{
+    font-size:9.5px; letter-spacing:0.04em; text-transform:uppercase;
+    color:var(--green); background:rgba(63,166,109,0.12);
+    border:1px solid var(--border-bright); border-radius:99px;
+    padding:2px 7px; margin-left:2px;
+  }
+
+  .install-panels{padding:22px 22px 26px;}
+  .install-panel{display:none;}
+  .install-panel.active{display:block; animation:fadein .2s ease;}
+  @keyframes fadein{from{opacity:0; transform:translateY(3px);} to{opacity:1; transform:translateY(0);}}
+
+  .install-steps{display:grid; grid-template-columns:1fr; gap:14px;}
+  .install-step{display:flex; gap:14px; align-items:flex-start;}
+  .step-num{
+    flex-shrink:0; width:22px; height:22px; border-radius:50%;
+    background:rgba(63,166,109,0.1); border:1px solid var(--border-bright);
+    color:var(--green); font-family:var(--mono); font-size:11.5px; font-weight:600;
+    display:flex; align-items:center; justify-content:center;
+    margin-top:2px;
+  }
+  .install-step-body{flex:1; min-width:0;}
+  .install-step-label{
+    font-family:var(--mono); font-size:12px; color:var(--fg-faint);
+    margin-bottom:8px;
+  }
+
+  .code-block{
+    background:var(--bg-raised); border:1px solid var(--border); border-radius:var(--radius);
+    padding:14px 16px; font-family:var(--mono); font-size:13.5px; color:var(--fg);
+    position:relative; overflow-x:auto;
+  }
+  .code-block .comment{color:var(--fg-faint);}
+  .code-block .cmd-prefix{color:var(--green); user-select:none;}
+  .code-block div{white-space:pre;}
+  .copy-btn{
+    position:absolute; top:9px; right:9px;
+    background:var(--pane); border:1px solid var(--border-bright);
+    color:var(--fg-dim); font-family:var(--mono); font-size:11px;
+    padding:5px 10px; border-radius:4px; cursor:pointer;
+    transition:color .15s ease, border-color .15s ease, background .15s ease;
+    display:flex; align-items:center; gap:5px;
+  }
+  .copy-btn svg{width:11px; height:11px;}
+  .copy-btn:hover{color:var(--green); border-color:var(--green);}
+  .copy-btn.copied{color:var(--green); border-color:var(--green); background:rgba(63,166,109,0.1);}
+
+  .install-note{
+    display:flex; gap:8px; align-items:flex-start;
+    font-size:13px; color:var(--fg-faint); margin-top:16px;
+    font-family:var(--mono);
+  }
+  .install-note svg{width:14px; height:14px; flex-shrink:0; margin-top:2px; color:var(--fg-faint);}
+
+  /* ---------- badges ---------- */
+  .badges{display:flex; gap:10px; flex-wrap:wrap; margin-top:32px;}
+  .badge{
+    font-family:var(--mono); font-size:12px; color:var(--fg-dim);
+    border:1px solid var(--border-bright); border-radius:99px; padding:6px 13px;
+    display:inline-flex; align-items:center; gap:7px;
+  }
+  .badge .dot{width:6px; height:6px; border-radius:50%; background:var(--green);}
+
+  /* ---------- footer ---------- */
+  footer{
+    border-top:1px solid var(--border);
+    margin-top:24px;
+    position:relative;
+    z-index:1;
+  }
+  .footer-inner{
+    padding:56px 24px 40px;
+    display:flex; flex-direction:column; gap:36px;
+  }
+  .footer-top{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    flex-wrap:wrap; gap:32px;
+  }
+  .footer-brand{display:flex; flex-direction:column; gap:12px; max-width:340px;}
+  .footer-brand .term-brand{font-size:15px;}
+  .footer-brand p{
+    color:var(--fg-faint); font-size:13.5px; line-height:1.6; margin:0;
+  }
+  .footer-cols{display:flex; gap:56px; flex-wrap:wrap;}
+  .footer-col{display:flex; flex-direction:column; gap:11px;}
+  .footer-col-title{
+    font-family:var(--mono); font-size:11px; color:var(--fg-faint);
+    text-transform:uppercase; letter-spacing:0.08em; margin-bottom:2px;
+  }
+  .footer-col a{
+    font-family:var(--mono); font-size:13px; color:var(--fg-dim);
+    text-decoration:none; transition:color .15s ease;
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .footer-col a:hover{color:var(--green);}
+  .footer-bottom{
+    display:flex; justify-content:space-between; align-items:center;
+    flex-wrap:wrap; gap:14px;
+    padding-top:28px; border-top:1px solid var(--border);
+    font-family:var(--mono); font-size:12px; color:var(--fg-faint);
+  }
+  .footer-bottom a{text-decoration:none; color:var(--fg-faint); transition:color .15s ease;}
+  .footer-bottom a:hover{color:var(--green);}
+  .footer-status{display:flex; align-items:center; gap:7px;}
+  .footer-status .dot{width:6px; height:6px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green-glow);}
+
+  @media (max-width:600px){
+    .hero{padding:64px 0 48px;}
+    .section{padding:56px 0;}
+    .footer-inner{padding:44px 20px 32px;}
+    .footer-cols{gap:32px;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+    html{scroll-behavior:auto;}
+  }
+
+  /* --- Interactive Terminal CSS --- */
+  .interactive-term.pane { background: var(--pane); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: 0 40px 80px -30px rgba(0,0,0,0.7), 0 0 0 1px var(--border); margin-top: 10px; }
+  .interactive-term .pane-body {
+    height: 240px; padding: 16px; overflow-y: auto;
+    font-family: var(--mono); font-size: 13.5px;
+    display: flex; flex-direction: column; background: var(--pane);
+  }
+  .term-history { margin-bottom: 8px; }
+  .term-suggestions { margin-bottom: 16px; color: var(--fg-faint); }
+  .term-cmd-btn {
+    background: rgba(63,166,109,0.1); border: 1px solid var(--border-bright); color: var(--green);
+    border-radius: 4px; padding: 2px 6px; font-family: var(--mono); font-size: 12px; cursor: pointer;
+    transition: all 0.2s; margin: 0 4px;
+  }
+  .term-cmd-btn:hover { background: rgba(63,166,109,0.2); }
+  .term-input-line { display: flex; gap: 8px; align-items: center; }
+  .term-input-line .prompt { color: var(--green); font-weight: 600; }
+  .term-typing .cursor { animation: blink 1s step-start infinite; }
+
+  /* --- Feature Cards Glow CSS --- */
+  .feature { position: relative; overflow: hidden; }
+  .feature::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), var(--green-glow) 0%, transparent 60%);
+    opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 0;
+  }
+  .feature:hover::before { opacity: 1; }
+  .feature > * { position: relative; z-index: 1; }
+  .feature:hover {
+    box-shadow: 0 10px 20px -10px rgba(0,0,0,0.5), 0 0 15px var(--green-glow);
+  }
+
+  /* --- Ambient Focus CSS --- */
+  body.ambient-mode {
+    filter: brightness(0.7) saturate(1.2);
+    box-shadow: inset 0 0 200px rgba(63,166,109,0.15);
+  }
+  body.ambient-mode::before { animation: drift 20s linear infinite; }
+  @keyframes drift {
+    from { background-position: 0 0; }
+    to { background-position: 42px 42px; }
+  }
+  .ambient-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: var(--pane); border: 1px solid var(--green); color: var(--green);
+    padding: 8px 16px; border-radius: 99px; font-family: var(--mono); font-size: 13px;
+    opacity: 0; transition: all 0.3s; z-index: 100; pointer-events: none;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .ambient-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  #replay-log-btn { background: var(--bg-raised); border-color: var(--border-bright); color: var(--fg); }
+  #replay-log-btn:hover { background: rgba(63,166,109,0.1); border-color: var(--green); color: var(--green); transform: translateY(-1px); }
+
+  .pixelated-word { font-family: 'VT323', monospace; letter-spacing: 2px; font-size: 1.15em; display: inline-block; }
+  .glitch-active { position: relative; display: inline-block; }
+  .glitch-active::before, .glitch-active::after { content: attr(data-text); position: absolute; top: 0; left: 0; opacity: 0.8; }
+  .glitch-active::before { left: 2px; text-shadow: -2px 0 red; clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%); animation: glitch-anim 0.2s infinite linear alternate-reverse; }
+  .glitch-active::after { left: -2px; text-shadow: -2px 0 blue; clip-path: polygon(0 80%, 100% 20%, 100% 100%, 0 100%); animation: glitch-anim2 0.3s infinite linear alternate-reverse; }
+  @keyframes glitch-anim {
+    0% { clip-path: inset(20% 0 80% 0); transform: translate(2px, 1px); }
+    20% { clip-path: inset(60% 0 10% 0); transform: translate(-2px, -1px); }
+    40% { clip-path: inset(40% 0 50% 0); transform: translate(2px, -1px); }
+    60% { clip-path: inset(80% 0 5% 0); transform: translate(-2px, 1px); }
+    80% { clip-path: inset(10% 0 70% 0); transform: translate(2px, 1px); }
+    100% { clip-path: inset(30% 0 50% 0); transform: translate(-2px, -1px); }
+  }
+  @keyframes glitch-anim2 {
+    0% { clip-path: inset(10% 0 60% 0); transform: translate(-2px, 1px); }
+    20% { clip-path: inset(30% 0 20% 0); transform: translate(2px, -1px); }
+    40% { clip-path: inset(70% 0 10% 0); transform: translate(-2px, -1px); }
+    60% { clip-path: inset(20% 0 50% 0); transform: translate(2px, 1px); }
+    80% { clip-path: inset(50% 0 30% 0); transform: translate(-2px, 1px); }
+    100% { clip-path: inset(5% 0 80% 0); transform: translate(2px, -1px); }
+  }
+
+  /* --- Workflow Diagram CSS --- */
+  .workflow-diagram {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 40px 0;
+    font-family: var(--mono);
+    text-align: center;
+  }
+  .wf-node {
+    background: var(--pane);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius);
+    padding: 16px 24px;
+    width: 260px;
+    box-shadow: 0 10px 20px -10px rgba(0,0,0,0.5);
+    position: relative;
+    z-index: 2;
+  }
+  .wf-node.user-node { border-color: var(--border); }
+  .wf-node.output-node { border-color: var(--green); box-shadow: 0 0 15px var(--green-glow); }
+  .wf-title { font-size: 14px; font-weight: 600; color: var(--fg); margin-bottom: 6px; }
+  .wf-desc { font-size: 12.5px; color: var(--fg-dim); }
+  
+  .wf-box {
+    background: rgba(45, 69, 48, 0.05);
+    border: 1px dashed var(--green-dim);
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+  .wf-box-title {
+    position: absolute;
+    top: -12px;
+    background: var(--bg);
+    padding: 0 12px;
+    color: var(--green);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .wf-grid {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 10px;
+  }
+  
+  .wf-arrow {
+    color: var(--green);
+    font-size: 24px;
+    margin: 12px 0;
+    line-height: 1;
+    animation: pulse-arrow 1.5s infinite;
+  }
+  .wf-arrow-h {
+    color: var(--green);
+    font-size: 24px;
+    animation: pulse-arrow 1.5s infinite;
+  }
+  
+  @keyframes pulse-arrow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.9); }
+  }
+
+  @media (max-width: 860px) {
+    .wf-grid { flex-direction: column; }
+    .wf-arrow-h { transform: rotate(90deg); margin: 8px 0; }
+  }
+
+  /* --- Comparison Table CSS --- */
+  .table-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 32px;
+    background: var(--pane);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .compare-table {
+    width: 100%;
+    min-width: 600px;
+    border-collapse: collapse;
+    font-family: var(--sans);
+    font-size: 14px;
+    text-align: left;
+  }
+  .compare-table th, .compare-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    color: var(--fg-dim);
+  }
+  .compare-table th {
+    font-weight: 600;
+    color: var(--fg);
+    background: rgba(0,0,0,0.1);
+  }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table .highlight-col {
+    background: rgba(63, 166, 109, 0.05);
+    color: var(--green);
+    font-weight: 500;
+    border-left: 1px solid var(--border-bright);
+    border-right: 1px solid var(--border-bright);
+  }
+  .compare-table th.highlight-col {
+    background: rgba(63, 166, 109, 0.1);
+    color: var(--green);
+  }
+
+  /* --- Creator's Note CSS --- */
+  #creator-note {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 64px 20px;
+    background: linear-gradient(180deg, var(--bg) 0%, rgba(63, 166, 109, 0.05) 100%);
+  }
+  .quote-container {
+    max-width: 800px;
+    position: relative;
+    text-align: center;
+    padding: 40px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--pane);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  }
+  .quote-mark {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 64px;
+    color: var(--green);
+    font-family: var(--sans);
+    line-height: 1;
+    background: var(--bg);
+    padding: 0 20px;
+  }
+  .creator-quote p {
+    font-size: 18px;
+    line-height: 1.8;
+    color: var(--fg);
+    font-family: var(--sans);
+    font-style: italic;
+    margin: 0 0 24px 0;
+  }
+  .creator-signature {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .creator-signature strong {
+    font-size: 16px;
+    color: var(--green);
+    font-family: var(--mono);
+  }
+  .creator-signature span {
+    font-size: 13px;
+    color: var(--fg-dim);
+  }
+</style>
+</head>
+<body>
+
+<div class="term-bar">
+  <div class="term-bar-inner">
+    <div class="term-brand">
+      <img src="assets/logo.png" alt="Orchestra logo">
+      orchestra
+    </div>
+    <div class="term-nav">
+      <div class="theme-switcher">
+        <button class="theme-btn active" data-theme="default">Default</button>
+        <button class="theme-btn" data-theme="dracula">Dracula</button>
+        <button class="theme-btn" data-theme="nord">Nord</button>
+      </div>
+      <a href="#features">features</a>
+      <a href="#action">demo</a>
+      <a href="#start">get started</a>
+      <a class="gh-link" href="https://github.com/TheAhsanFarabi/orchestra" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-top">
+      <div class="hero-text">
+        <div class="hero-eyebrow"><span class="blink"></span> local · v1.0.0 · powered by ollama</div>
+        <h1 id="hero-headline">An AI agent that never<br>leaves your <span class="accent glitch" data-text="terminal">terminal</span> —<br>or your machine.</h1>
+        <p class="hero-sub">
+          Orchestra is a privacy-first, terminal-native coding agent. It plans, calls tools, reads your codebase,
+          and writes code with the same fluency as cloud tools like Claude Code — running entirely on
+          <code>ollama</code>, on hardware you own.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#start">Get started →</a>
+          <a class="btn btn-ghost" href="https://github.com/TheAhsanFarabi/orchestra" target="_blank" rel="noopener">View on GitHub</a>
+        </div>
+      </div>
+      <div class="hero-logo-container" id="hero-logo-btn">
+        <div class="chat-bubble">click me!</div>
+        <img class="hero-logo" id="hero-logo-img" src="assets/logo.png" alt="Orchestra logo">
+      </div>
+    </div>
+
+    <div class="hero-shot interactive-term pane">
+      <div class="pane-bar">
+        <div class="term-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span>orchestra — zsh — 120×32</span>
+      </div>
+      <div class="pane-body" id="term-window">
+         <div class="term-history" id="term-history">
+            <div class="log-line">Welcome to Orchestra v1.0.0. Type a command to see it in action.</div>
+         </div>
+         <div class="term-suggestions">
+            Try: <button class="term-cmd-btn" data-cmd="/theme dracula">/theme dracula</button> | 
+            <button class="term-cmd-btn" data-cmd="!ls">!ls</button> | 
+            <button class="term-cmd-btn" data-cmd="/help">/help</button>
+         </div>
+         <div class="term-input-line">
+            <span class="prompt">you ›</span>
+            <span class="term-typing" id="term-typing"><span class="cursor">_</span></span>
+         </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- FEATURES -->
+  <section class="section" id="features">
+    <div class="section-head">
+      <span class="section-tag">Capabilities</span>
+      <h2>Everything a cloud agent does. Nothing leaves the machine.</h2>
+      <p>Nine tools, one loop, zero network dependency on your code or your prompts.</p>
+    </div>
+
+    <div class="grid">
+      <div class="feature">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <h3>100% local &amp; private</h3>
+        <p>No API keys, no subscriptions. Your code and prompts never leave your machine.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.2H22l-6 4.4 2.3 7.2L12 16.4 5.7 20.8 8 13.6 2 9.2h7.6z"/></svg></div>
+        <h3>Agentic tool swarm</h3>
+        <p>Reads files, lists directories, runs bash, and edits your codebase autonomously.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/></svg></div>
+        <h3>Artifact system</h3>
+        <p>Ask for an architectural plan or doc — it's generated as a markdown artifact you can view and re-inject later.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M9.5 9.5l5 5"/></svg></div>
+        <h3>Multi-session support</h3>
+        <p>Isolated chat sessions. Jump between debugging and brainstorming without cross-contaminating context.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg></div>
+        <h3>Context injection</h3>
+        <p><code style="font-family:var(--mono);color:var(--fg)">/add file.py</code> feeds files into context. Prefix any host command with <code style="font-family:var(--mono);color:var(--fg)">!</code> to inject its output.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 4.5-9 4.5-9-4.5z"/><path d="M3 7.5v9l9 4.5 9-4.5v-9"/></svg></div>
+        <h3>Dynamic theming</h3>
+        <p>Switch between Dracula, Nord, Monokai, and Synthwave on the fly, mid-session.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5V4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg></div>
+        <h3>Prompt library</h3>
+        <p>Save frequently used prompts to <code style="font-family:var(--mono);color:var(--fg)">~/.orchestra/prompts/</code> and load them instantly.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg></div>
+        <h3>Ambient focus</h3>
+        <p>Toggle background ambient music with <code style="font-family:var(--mono);color:var(--fg)">Shift+Tab</code> to stay in flow.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg></div>
+        <h3>Permission gate</h3>
+        <p>Dangerous actions like <code style="font-family:var(--mono);color:var(--fg)">write_file</code> or <code style="font-family:var(--mono);color:var(--fg)">run_bash</code> require explicit y/n approval before they execute.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- WORKFLOW DIAGRAM -->
+  <section class="section" id="workflow">
+    <div class="section-head">
+      <span class="section-tag">How it works</span>
+      <h2>The Autonomous Loop.</h2>
+      <p>Orchestra isn't just an autocomplete. It runs in a continuous feedback loop until the goal is achieved.</p>
+    </div>
+    
+    <div class="workflow-diagram">
+       <div class="wf-node user-node">
+          <div class="wf-title">User Prompt</div>
+          <div class="wf-desc">"Build a react app..."</div>
+       </div>
+       <div class="wf-arrow">↓</div>
+       <div class="wf-box">
+          <div class="wf-box-title">Orchestra Agent Loop</div>
+          <div class="wf-grid">
+             <div class="wf-node agent-node">
+                <div class="wf-title">1. Reason & Plan</div>
+                <div class="wf-desc">Breaks task into steps</div>
+             </div>
+             <div class="wf-arrow-h">→</div>
+             <div class="wf-node agent-node">
+                <div class="wf-title">2. Use Tools</div>
+                <div class="wf-desc">Search, Bash, Read Code</div>
+             </div>
+             <div class="wf-arrow-h">→</div>
+             <div class="wf-node agent-node">
+                <div class="wf-title">3. Verify</div>
+                <div class="wf-desc">Checks if output meets goal</div>
+             </div>
+          </div>
+       </div>
+       <div class="wf-arrow">↓</div>
+       <div class="wf-node output-node">
+          <div class="wf-title">Done</div>
+          <div class="wf-desc">Verified code saved to disk</div>
+       </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- COMPARISON TABLE -->
+  <section class="section" id="compare">
+    <div class="section-head">
+      <span class="section-tag">Compare</span>
+      <h2>Why Orchestra?</h2>
+      <p>How Orchestra stacks up against other AI coding assistants in the landscape.</p>
+    </div>
+    
+    <div class="table-container">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th class="highlight-col">Orchestra</th>
+            <th>Claude Code</th>
+            <th>Antigravity</th>
+            <th>Codex</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Privacy / Execution</td>
+            <td class="highlight-col"><strong>100% Local (Ollama)</strong></td>
+            <td>Cloud (Anthropic)</td>
+            <td>Hybrid (Depends)</td>
+            <td>Cloud (OpenAI)</td>
+          </tr>
+          <tr>
+            <td>Agentic Loop</td>
+            <td class="highlight-col"><strong>Yes (Autonomous)</strong></td>
+            <td>Yes</td>
+            <td>Yes</td>
+            <td>No (Autocomplete)</td>
+          </tr>
+          <tr>
+            <td>Interface</td>
+            <td class="highlight-col"><strong>Rich TUI</strong></td>
+            <td>CLI</td>
+            <td>IDE Extension / CLI</td>
+            <td>IDE Extension</td>
+          </tr>
+          <tr>
+            <td>Cost</td>
+            <td class="highlight-col"><strong>Free (Open Source)</strong></td>
+            <td>Pay-per-token API</td>
+            <td>Subscription / API</td>
+            <td>Subscription</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ACTION LOG -->
+  <section class="section" id="action">
+    <div class="section-head">
+      <span class="section-tag">See it in action</span>
+      <h2>One prompt. A full plan, executed and verified.</h2>
+      <p>A real Orchestra session: the agent breaks the task down, searches, writes the artifact, and marks it done — no manual steps in between.</p>
+      <button class="btn" id="replay-log-btn" style="margin-top: 16px;">Replay Scenario ↻</button>
+    </div>
+
+    <div class="pane">
+      <div class="pane-bar">
+        <div class="term-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span>session — orchestra</span>
+      </div>
+      <div class="pane-body" id="action-log-body">
+        <div class="log-line you"><span class="prompt">you ›</span> Write a detailed 5-day workout plan and save it as an artifact named 'workout_plan'.</div>
+        <div class="log-line"><span class="arrow">→</span>tasks_add <span class="arrow">→</span>Added task #<b>1</b>: Research workout routines and create a 5-day plan.</div>
+        <div class="log-line"><span class="arrow">→</span>search_web <span class="arrow">→</span><b>1</b>. The 5-Day Workout Routine And Split</div>
+        <div class="log-line"><span class="arrow">→</span>create_artifact <span class="arrow">→</span>Artifact created successfully: ~/.orchestra/artifacts/workout_plan.md</div>
+        <div class="log-line"><span class="ok">✓</span> tasks_done <span class="arrow">→</span>Marked #<b>1</b> as done: Research workout routines and create a 5-day plan.</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- COMMANDS -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-tag">Reference</span>
+      <h2>Slash commands</h2>
+      <p>Type <code style="font-family:var(--mono);background:var(--bg-raised);border:1px solid var(--border);padding:1px 6px;border-radius:4px;">/</code> inside the TUI for a self-documenting command menu with contextual hints.</p>
+    </div>
+
+    <div class="pane">
+      <table class="cmd-table">
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>/help</td><td>Show the help menu</td></tr>
+          <tr><td>/session</td><td>Manage isolated chat sessions — new, list, delete, switch</td></tr>
+          <tr><td>/artifact</td><td>View and inject AI-generated architectural plans and documents</td></tr>
+          <tr><td>/add &lt;file&gt;</td><td>Inject a specific file into the agent's context for the next prompt</td></tr>
+          <tr><td>/prompt &lt;name&gt;</td><td>Load a saved prompt from your personal library</td></tr>
+          <tr><td>/model &lt;name&gt;</td><td>Switch the active Ollama model</td></tr>
+          <tr><td>/theme &lt;name&gt;</td><td>Switch the visual theme — dracula, nord, monokai, synthwave</td></tr>
+          <tr><td>/tasks · /goal</td><td>View and manage your persistent autonomous task list</td></tr>
+          <tr><td>/context</td><td>View context window usage and a visual map of the conversation</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- GET STARTED -->
+  <section class="section" id="start">
+    <div class="section-head">
+      <span class="section-tag">Get started</span>
+      <h2>Running in under five minutes.</h2>
+      <p>Python 3.10+ and Ollama are the only prerequisites. Everything else installs into a virtual environment.</p>
+    </div>
+
+    <div class="install-shell">
+      <div class="os-tabs" role="tablist" aria-label="Operating system">
+        <button class="os-tab" data-os="mac" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.24-.02-.32-.03-.015-.1-.045-.4-.045-.7 0-1.13.542-2.28 1.19-3.03.756-.86 2.05-1.5 3.06-1.55.03.15.03.34.03.44v.22zM20.51 17.36c-.5 1.15-.735 1.665-1.375 2.685-.895 1.42-2.155 3.185-3.715 3.2-1.385.015-1.74-.9-3.62-.885-1.88.01-2.27.9-3.655.885-1.56-.015-2.755-1.61-3.65-3.03-2.5-3.955-2.765-8.6-1.22-11.075.9-1.44 2.53-2.35 4.06-2.35 1.57 0 2.56.885 3.86.885 1.26 0 2.03-.885 3.86-.885 1.36 0 2.805.74 3.835 2.02-3.37 1.845-2.825 6.655.62 8.55z"/></svg>
+          macOS
+        </button>
+        <button class="os-tab" data-os="linux" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.5.5c-2 0-3.5 2-3.4 4.2.05 1-.15 1.7-.75 2.6-.6.9-1.55 1.9-1.55 3.5 0 1 .4 1.8.4 1.8s-1.9.7-2.4 2.4c-.3 1-.1 1.9.3 2.5-.3.3-.5.8-.4 1.3.15.75.9 1.05 1.6 1.2-.1.4 0 .85.3 1.2.6.7 1.9.7 2.9.35.5.5 1.3.85 2.4.85 1.05 0 1.85-.3 2.35-.8 1.05.4 2.45.4 3.05-.35.3-.35.4-.8.3-1.2.7-.15 1.45-.45 1.6-1.2.1-.5-.1-1-.4-1.3.4-.6.6-1.5.3-2.5-.5-1.7-2.4-2.4-2.4-2.4s.4-.8.4-1.8c0-1.6-.95-2.6-1.55-3.5-.6-.9-.8-1.6-.75-2.6.1-2.2-1.5-4.2-3.4-4.2h-.6z"/></svg>
+          Linux
+        </button>
+        <button class="os-tab" data-os="windows" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5l7.4-1v7.1H3V5.5zm8.4-1.1L21 3v8.5H11.4V4.4zM3 12.6h7.4v7.1L3 18.6v-6zm8.4 0H21V21l-9.6-1.3v-7.1z"/></svg>
+          Windows (WSL)
+        </button>
+      </div>
+
+      <div class="install-panels">
+
+        <!-- macOS -->
+        <div class="install-panel" data-os-panel="mac">
+          <div class="install-steps">
+            <div class="install-step">
+              <div class="step-num">1</div>
+              <div class="install-step-body">
+                <div class="install-step-label">Pull a model — 4B–8B fits most laptops</div>
+                <div class="code-block"><div><span class="cmd-prefix">$</span> ollama pull qwen3:4b-instruct
+<span class="cmd-prefix">$</span> ollama pull qwen2.5:7b</div>
+                  <button class="copy-btn" data-copy="ollama pull qwen3:4b-instruct
+ollama pull qwen2.5:7b">copy</button>
+                </div>
+              </div>
+            </div>
+            <div class="install-step">
+              <div class="step-num">2</div>
+              <div class="install-step-body">
+                <div class="install-step-label">Clone and install</div>
+                <div class="code-block"><div><span class="cmd-prefix">$</span> git clone https://github.com/TheAhsanFarabi/orchestra.git
+<span class="cmd-prefix">$</span> cd orchestra
+<span class="cmd-prefix">$</span> python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+<span class="cmd-prefix">$</span> pip install -e .</div>
+                  <button class="copy-btn" data-copy="git clone https://github.com/TheAhsanFarabi/orchestra.git
+cd orchestra
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .">copy</button>
+                </div>
+              </div>
+            </div>
+            <div class="install-step">
+              <div class="step-num">3</div>
+              <div class="install-step-body">
+                <div class="install-step-label">Run it</div>
+                <div class="code-block"><div><span class="cmd-prefix">$</span> orchestra</div>
+                  <button class="copy-btn" data-copy="orchestra">copy</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Linux -->
+        <div class="install-panel" data-os-panel="linux">
+          <div class="install-steps">
+            <div class="install-step">
+              <div class="step-num">1</div>
+              <div class="install-step-body">
+                <div class="install-step-label">Install Ollama, then pull a model</div>
+                <div class="code-block"><div><span class="cmd-prefix">$</span> curl -fsSL https://ollama.com/install.sh | sh
+<span class="cmd-prefix">$</span> ollama pull qwen3:4b-instruct
+<span class="cmd-prefix">$</span> ollama pull qwen2.5:7b</div>
+                  <button class="copy-btn" data-copy="curl -fsSL https://ollama.com/install.sh | sh
+ollama pull qwen3:4b-instruct
+ollama pull qwen2.5:7b">copy</button>
+                </div>
+              </div>
+            </div>
+            <div class="install-step">
+              <div class="step-num">2</div>
+              <div class="install-step-body">
+                <div class="install-step-label">Clone and install</div>
+                <div class="code-block"><div><span class="cmd-prefix">$</span> git clone https://github.com/TheAhsanFarabi/orchestra.git
+<span class="cmd-prefix">$</span> cd orchestra
+<span class="cmd-prefix">$</span> python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+<span class="cmd-prefix">$</span> pip install -e .</div>
+                  <button class="copy-btn" data-copy="git clone https://github.com/TheAhsanFarabi/orchestra.git
+cd orchestra
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .">copy</button>
+                </div>
+              </div>
+            </div>
+            <div class="install-step">
+              <div class="step-num">3</div>
+              <div class="install-step-body">
+                <div class="install-step-label">Run it</div>
+                <div class="code-block"><div><span class="cmd-prefix">$</span> orchestra</div>
+                  <button class="copy-btn" data-copy="orchestra">copy</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Windows -->
+        <div class="install-panel" data-os-panel="windows">
+          <div class="install-steps">
+            <div class="install-step">
+              <div class="step-num">1</div>
+              <div class="install-step-body">
+                <div class="install-step-label">Inside WSL — install Ollama, then pull a model</div>
+                <div class="code-block"><div><span class="cmd-prefix">$</span> curl -fsSL https://ollama.com/install.sh | sh
+<span class="cmd-prefix">$</span> ollama pull qwen3:4b-instruct
+<span class="cmd-prefix">$</span> ollama pull qwen2.5:7b</div>
+                  <button class="copy-btn" data-copy="curl -fsSL https://ollama.com/install.sh | sh
+ollama pull qwen3:4b-instruct
+ollama pull qwen2.5:7b">copy</button>
+                </div>
+              </div>
+            </div>
+            <div class="install-step">
+              <div class="step-num">2</div>
+              <div class="install-step-body">
+                <div class="install-step-label">Clone and install</div>
+                <div class="code-block"><div><span class="cmd-prefix">$</span> git clone https://github.com/TheAhsanFarabi/orchestra.git
+<span class="cmd-prefix">$</span> cd orchestra
+<span class="cmd-prefix">$</span> python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+<span class="cmd-prefix">$</span> pip install -e .</div>
+                  <button class="copy-btn" data-copy="git clone https://github.com/TheAhsanFarabi/orchestra.git
+cd orchestra
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .">copy</button>
+                </div>
+              </div>
+            </div>
+            <div class="install-step">
+              <div class="step-num">3</div>
+              <div class="install-step-body">
+                <div class="install-step-label">Run it</div>
+                <div class="code-block"><div><span class="cmd-prefix">$</span> orchestra</div>
+                  <button class="copy-btn" data-copy="orchestra">copy</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="install-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+            Native Windows works too, but WSL gives you a real shell and avoids path issues with Ollama.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="badges">
+      <span class="badge"><span class="dot"></span>Self-hosted</span>
+      <span class="badge"><span class="dot"></span>Bring your own model</span>
+      <span class="badge"><span class="dot"></span>No telemetry</span>
+      <span class="badge"><span class="dot"></span>MIT licensed</span>
+    </div>
+  </section>
+  <hr class="divider">
+
+  <!-- CREATOR'S NOTE -->
+  <section class="section" id="creator-note">
+    <div class="quote-container">
+      <span class="quote-mark">"</span>
+      <blockquote class="creator-quote">
+        <p>Orchestra was born from true human-AI collaboration. By blending the raw power of agentic coding with deliberate engineering intuition, we forged a completely unique value proposition. Version 1 is the culmination of 48 hours of relentless building, testing, and manual curation. But this is just the beginning. The upcoming updates will redefine the landscape. Ultimately, my north star remains unchanged: advancing environmental sustainability, championing human-centered AI, and ensuring uncompromising AI safety.</p>
+      </blockquote>
+      <div class="creator-signature">
+        <strong>Ahsan Farabi</strong>
+        <span>Creator of Orchestra</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="term-brand"><img src="assets/logo.png" alt="Orchestra logo"> orchestra</div>
+        <p>A terminal-native AI agent that runs entirely on your own hardware through Ollama. No keys, no cloud, no telemetry.</p>
+      </div>
+
+      <div class="footer-cols">
+        <div class="footer-col">
+          <span class="footer-col-title">Product</span>
+          <a href="#features">Features</a>
+          <a href="#action">Demo</a>
+          <a href="#start">Get started</a>
+        </div>
+        <div class="footer-col">
+          <span class="footer-col-title">Project</span>
+          <a href="https://github.com/TheAhsanFarabi/orchestra" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/TheAhsanFarabi/orchestra/issues" target="_blank" rel="noopener">Report an issue</a>
+          <a href="https://github.com/TheAhsanFarabi/orchestra/blob/main/LICENSE" target="_blank" rel="noopener">MIT license</a>
+        </div>
+        <div class="footer-col">
+          <span class="footer-col-title">Built with</span>
+          <a href="https://ollama.com" target="_blank" rel="noopener">Ollama</a>
+          <a href="https://github.com/prompt-toolkit/python-prompt-toolkit" target="_blank" rel="noopener">prompt_toolkit</a>
+          <a href="https://github.com/Textualize/rich" target="_blank" rel="noopener">rich</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2026 Orchestra. Open source under MIT.</span>
+      <div class="footer-status">
+        <span class="dot"></span>
+        <span>All systems local</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ---------- OS auto-detection ----------
+  function detectOS() {
+    const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+    const ua = navigator.userAgent || '';
+    if (/mac/i.test(platform) || /Mac/.test(ua)) return 'mac';
+    if (/win/i.test(platform) || /Windows/.test(ua)) return 'windows';
+    if (/linux/i.test(platform) || /Linux/.test(ua)) return 'linux';
+    return 'mac';
+  }
+
+  const detected = detectOS();
+  const tabs = document.querySelectorAll('.os-tab');
+  const panels = document.querySelectorAll('.install-panel');
+
+  function activateOS(os) {
+    tabs.forEach(t => {
+      const isMatch = t.dataset.os === os;
+      t.classList.toggle('active', isMatch);
+      t.setAttribute('aria-selected', isMatch ? 'true' : 'false');
+    });
+    panels.forEach(p => p.classList.toggle('active', p.dataset.osPanel === os));
+  }
+
+  tabs.forEach(tab => {
+    // add "detected" pill to the tab matching the visitor's OS
+    if (tab.dataset.os === detected) {
+      const pill = document.createElement('span');
+      pill.className = 'detected-pill';
+      pill.textContent = 'detected';
+      tab.appendChild(pill);
+    }
+    tab.addEventListener('click', () => activateOS(tab.dataset.os));
+  });
+
+  activateOS(detected);
+
+  // ---------- Logo Pixelation Effect ----------
+  const heroLogoImg = document.getElementById('hero-logo-img');
+  const heroLogoContainer = document.getElementById('hero-logo-btn');
+  let pixelSize = 1; 
+  
+  if (heroLogoImg && heroLogoContainer) {
+    let originalSrc = heroLogoImg.src;
+    let originalImage = new Image();
+    originalImage.src = originalSrc;
+    
+    // Create a persistent canvas to display the pixelated image in the DOM
+    const displayCanvas = document.createElement('canvas');
+    displayCanvas.className = 'hero-logo';
+    displayCanvas.style.display = 'none';
+    heroLogoContainer.appendChild(displayCanvas);
+    
+    heroLogoContainer.addEventListener('click', () => {
+      if (!originalImage.complete || originalImage.width === 0) return;
+      
+      pixelSize += 3;
+      if (pixelSize > 12) {
+         pixelSize = 1;
+      }
+      
+      if (pixelSize === 1) {
+         heroLogoImg.style.display = '';
+         displayCanvas.style.display = 'none';
+         heroLogoImg.style.transform = 'scale(1)';
+         return;
+      }
+      
+      heroLogoImg.style.display = 'none';
+      displayCanvas.style.display = '';
+      displayCanvas.style.transform = `scale(${1 + (pixelSize * 0.04)})`;
+      
+      const w = originalImage.width;
+      const h = originalImage.height;
+      displayCanvas.width = w;
+      displayCanvas.height = h;
+      const ctx = displayCanvas.getContext('2d');
+      
+      const scaledW = Math.max(1, Math.floor(w / pixelSize));
+      const scaledH = Math.max(1, Math.floor(h / pixelSize));
+      
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = scaledW;
+      tempCanvas.height = scaledH;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(originalImage, 0, 0, scaledW, scaledH);
+      
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(tempCanvas, 0, 0, scaledW, scaledH, 0, 0, w, h);
+    });
+  }
+
+  // ---------- copy buttons ----------
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const text = btn.getAttribute('data-copy').replace(/&amp;/g, '&');
+      try {
+        await navigator.clipboard.writeText(text);
+        const original = btn.textContent;
+        btn.textContent = 'copied';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.classList.remove('copied');
+        }, 1500);
+      } catch (e) {
+        btn.textContent = 'error';
+        setTimeout(() => { btn.textContent = 'copy'; }, 1500);
+      }
+    });
+  });
+
+  // ---------- Theme Switcher ----------
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const theme = btn.getAttribute('data-theme');
+      if (theme === 'default') {
+        document.documentElement.removeAttribute('data-theme');
+      } else {
+        document.documentElement.setAttribute('data-theme', theme);
+      }
+    });
+  });
+
+  // ---------- Feature Cards Glow ----------
+  document.querySelectorAll('.feature').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      card.style.setProperty('--x', `${x}px`);
+      card.style.setProperty('--y', `${y}px`);
+    });
+  });
+
+  // ---------- Animated Action Log Replay ----------
+  const actionLogBody = document.getElementById('action-log-body');
+  const replayBtn = document.getElementById('replay-log-btn');
+  if(actionLogBody && replayBtn) {
+    const originalHTML = actionLogBody.innerHTML;
+    const lines = originalHTML.split('\n').filter(l => l.trim() !== '');
+    replayBtn.addEventListener('click', async () => {
+       replayBtn.disabled = true;
+       replayBtn.textContent = 'Running...';
+       actionLogBody.innerHTML = '';
+       for(let line of lines) {
+          actionLogBody.innerHTML += line + '\n';
+          await new Promise(r => setTimeout(r, 600 + Math.random() * 800));
+       }
+       replayBtn.disabled = false;
+       replayBtn.textContent = 'Replay Scenario ↻';
+    });
+  }
+
+  // ---------- Ambient Focus Toggle ----------
+  let ambientMode = false;
+  const ambientToast = document.createElement('div');
+  ambientToast.className = 'ambient-toast';
+  ambientToast.innerHTML = '<span class="text"></span>';
+  document.body.appendChild(ambientToast);
+  
+  const rainCanvas = document.createElement('canvas');
+  rainCanvas.id = 'rain-canvas';
+  rainCanvas.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:90; opacity:0; transition:opacity 1s;';
+  document.body.appendChild(rainCanvas);
+  
+  const ambientAudio = document.createElement('audio');
+  ambientAudio.src = 'assets/lofi.mp3';
+  ambientAudio.loop = true;
+  document.body.appendChild(ambientAudio);
+
+  const ctxRain = rainCanvas.getContext('2d');
+  let drops = [];
+  function initRain() {
+    rainCanvas.width = window.innerWidth;
+    rainCanvas.height = window.innerHeight;
+    drops = [];
+    for(let i=0; i<150; i++) {
+      drops.push({
+        x: Math.random() * rainCanvas.width,
+        y: Math.random() * rainCanvas.height,
+        len: Math.random() * 20 + 10,
+        speed: Math.random() * 10 + 15
+      });
+    }
+  }
+  function drawRain() {
+    if(!ambientMode) return;
+    ctxRain.clearRect(0, 0, rainCanvas.width, rainCanvas.height);
+    ctxRain.strokeStyle = 'rgba(63,166,109,0.3)';
+    ctxRain.lineWidth = 1.5;
+    ctxRain.beginPath();
+    for(let d of drops) {
+      ctxRain.moveTo(d.x, d.y);
+      ctxRain.lineTo(d.x, d.y + d.len);
+      d.y += d.speed;
+      if(d.y > rainCanvas.height) {
+        d.y = -d.len;
+        d.x = Math.random() * rainCanvas.width;
+      }
+    }
+    ctxRain.stroke();
+    requestAnimationFrame(drawRain);
+  }
+  window.addEventListener('resize', () => { if(ambientMode) initRain(); });
+
+  let toastTimeout;
+  document.addEventListener('keydown', (e) => {
+    if (e.shiftKey && e.key === 'Tab') {
+      e.preventDefault();
+      ambientMode = !ambientMode;
+      document.body.classList.toggle('ambient-mode', ambientMode);
+      
+      if (ambientMode) {
+        ambientAudio.play().catch(e => console.log('Audio play failed:', e));
+        rainCanvas.style.opacity = '1';
+        initRain();
+        drawRain();
+        ambientToast.querySelector('.text').textContent = 'Ambient Focus: ON';
+        ambientToast.classList.add('show');
+        clearTimeout(toastTimeout);
+      } else {
+        ambientAudio.pause();
+        rainCanvas.style.opacity = '0';
+        ambientToast.querySelector('.text').textContent = 'Ambient Focus: OFF';
+        
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => ambientToast.classList.remove('show'), 2000);
+      }
+    }
+  });
+
+  // ---------- Hero Typewriter Effect ----------
+  const heroTitle = document.getElementById('hero-headline');
+  if (heroTitle) {
+    const htmlString = 'An AI agent that never<br>leaves your <span class="accent" id="term-word" data-text="terminal">terminal</span> —<br>or your machine.';
+    heroTitle.innerHTML = '';
+    let i = 0;
+    let isTag = false;
+    let text = '';
+    const typeWriter = () => {
+      if (i < htmlString.length) {
+        text += htmlString.charAt(i);
+        heroTitle.innerHTML = text + '<span class="cursor">_</span>';
+        if (htmlString.charAt(i) === '<') isTag = true;
+        if (htmlString.charAt(i) === '>') isTag = false;
+        i++;
+        setTimeout(typeWriter, isTag ? 0 : 25 + Math.random() * 30);
+      } else {
+        heroTitle.innerHTML = text;
+        setTimeout(() => {
+          const termWord = document.getElementById('term-word');
+          if (termWord) {
+             termWord.classList.add('glitch-active');
+             setTimeout(() => {
+                termWord.classList.remove('glitch-active');
+                termWord.classList.add('pixelated-word');
+             }, 300);
+          }
+        }, 150);
+      }
+    };
+    setTimeout(typeWriter, 400);
+  }
+
+  // ---------- Interactive Terminal Simulation ----------
+  const termHistory = document.getElementById('term-history');
+  const termTyping = document.getElementById('term-typing');
+  if (termHistory && termTyping) {
+    document.querySelectorAll('.term-cmd-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+         const cmd = btn.getAttribute('data-cmd');
+         // Type out command
+         termTyping.innerHTML = '<span class="cursor">_</span>';
+         let typed = '';
+         for(let char of cmd) {
+           typed += char;
+           termTyping.innerHTML = typed + '<span class="cursor">_</span>';
+           await new Promise(r => setTimeout(r, 50));
+         }
+         
+         await new Promise(r => setTimeout(r, 300));
+         
+         // Add to history
+         termHistory.innerHTML += `<div class="log-line you"><span class="prompt">you ›</span> ${cmd}</div>`;
+         termTyping.innerHTML = '<span class="cursor">_</span>';
+         
+         // Simulate response
+         let response = '';
+         if (cmd === '/theme dracula') {
+           response = '<div class="log-line"><span class="ok">✓</span> Switched active theme to <b>dracula</b></div>';
+           const draculaBtn = document.querySelector('[data-theme="dracula"]');
+           if (draculaBtn) draculaBtn.click();
+         } else if (cmd === '!ls') {
+           response = '<div class="log-line">README.md<br>index.html<br>package.json</div>';
+         } else if (cmd === '/help') {
+           response = '<div class="log-line">Available commands:<br>/theme - switch theme<br>/add - add context<br>!cmd - run bash command</div>';
+         }
+         termHistory.innerHTML += response;
+         
+         // Scroll to bottom
+         termHistory.parentElement.scrollTop = termHistory.parentElement.scrollHeight;
+      });
+    });
+  }
+  // ---------- Interactive Mouse Particles ----------
+  const pCanvas = document.createElement('canvas');
+  pCanvas.id = 'particle-canvas';
+  pCanvas.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:80;';
+  document.body.appendChild(pCanvas);
+  const pCtx = pCanvas.getContext('2d');
+  
+  let pWidth, pHeight;
+  function resizePCanvas() {
+    pWidth = window.innerWidth;
+    pHeight = window.innerHeight;
+    pCanvas.width = pWidth;
+    pCanvas.height = pHeight;
+  }
+  window.addEventListener('resize', resizePCanvas);
+  resizePCanvas();
+
+  const particles = [];
+  document.addEventListener('mousemove', (e) => {
+    for(let i=0; i<1; i++) {
+      particles.push({
+        x: e.clientX,
+        y: e.clientY,
+        size: Math.random() * 4 + 2,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2 + 0.5,
+        life: 1,
+        color: `rgba(63, 166, 109, ${Math.random() * 0.5 + 0.2})`
+      });
+    }
+  });
+
+  function drawParticles() {
+    pCtx.clearRect(0, 0, pWidth, pHeight);
+    for(let i = particles.length - 1; i >= 0; i--) {
+      let p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= 0.015;
+      
+      if (p.life <= 0) {
+        particles.splice(i, 1);
+        continue;
+      }
+      
+      pCtx.fillStyle = p.color;
+      pCtx.globalAlpha = p.life;
+      pCtx.fillRect(p.x, p.y, p.size, p.size);
+    }
+    pCtx.globalAlpha = 1;
+    requestAnimationFrame(drawParticles);
+  }
+  drawParticles();
+</script>
+
+</body>
+</html>

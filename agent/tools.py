@@ -390,7 +390,7 @@ def search_web(query: str, max_results: int = 5) -> str:
     Returns snippets of the top search results. Useful for finding up-to-date real world information.
     """
     try:
-        from duckduckgo_search import DDGS
+        from ddgs import DDGS
         results = DDGS().text(query, max_results=max_results)
         if not results:
             return "No results found."
@@ -404,7 +404,7 @@ def search_web(query: str, max_results: int = 5) -> str:
             
         return "\n".join(output)
     except ImportError:
-        return "Error: duckduckgo-search package is not installed."
+        return "Error: ddgs package is not installed."
     except Exception as e:
         return f"Web search error: {e}"
 

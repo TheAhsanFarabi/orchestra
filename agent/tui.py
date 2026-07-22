@@ -465,8 +465,13 @@ def print_tools(theme: Theme) -> None:
     for name, fn in TOOL_REGISTRY.items():
         doc = (fn.__doc__ or "").strip().splitlines()[0]
         tbl.add_row(name, doc)
+    body = Group(
+        tbl,
+        Text(""),
+        Text("  /tools  (shows available tools)", style="dim")
+    )
     console.print(
-        Panel(tbl, title=f"[{theme.accent}]Available Tools[/]",
+        Panel(body, title=f"[{theme.accent}]Available Tools[/]",
               border_style=theme.border, box=box.ROUNDED)
     )
 
@@ -496,7 +501,7 @@ def print_memory(memory: MemoryLayer, theme: Theme, context_limit: int = 32_768)
     )
 
     hint = Text(
-        "  /reset to clear  ·  /memory clear is an alias for /reset",
+        "  /context clear  (wipes the context window)",
         style="dim",
     )
 
@@ -539,7 +544,6 @@ def _progress_bar(done: int, total: int, width: int = 20, theme: Theme | None = 
 
 
 def print_tasks(tasks: TaskList, theme: Theme) -> None:
-    goal_text = tasks.goal if tasks.goal else "(no goal set — use /goal set <text>)"
 
     tbl = Table(
         box=box.SIMPLE_HEAD, border_style="dim",
@@ -574,7 +578,6 @@ def print_tasks(tasks: TaskList, theme: Theme) -> None:
     progress = _progress_bar(done, total, theme=theme) if tasks.items else Text("")
 
     body = Group(
-        Text(f"  {goal_text}", style="dim italic"),
         Text(""),
         tbl if tasks.items
             else Text("  (no tasks yet — use /tasks add <text>)", style="dim"),
@@ -616,6 +619,8 @@ def print_goals(theme: Theme) -> None:
                 Text.assemble(("  Active: ", "dim"), active_label),
                 Text(""),
                 Markdown(skills_manager.goals_content),
+                Text(""),
+                Text("  /goal set <text>  ·  /goal done", style="dim"),
             ),
             title=f"[{theme.accent}]GOALS.md  (~/.orchestra/GOALS.md)[/]",
             border_style=theme.border, box=box.ROUNDED,
@@ -849,6 +854,8 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
     # ── model ─────────────────────────────────────────────────────────────
     elif cmd == "/model":
         if not arg:
+            _info(f"Current model: [{theme.accent}]{cfg.model}[/]", theme)
+            _info("  [dim]/model <name>  (e.g., /model llama3)[/]", theme)
             try:
                 import ollama
                 list_resp = ollama.list()
@@ -870,7 +877,6 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
                         _info(f"Switched to [{theme.accent}]{result}[/] [dim](history reset)[/]", theme)
             except Exception as e:
                 _error(f"Could not fetch models: {e}", theme)
-                _info("Usage: /model <name>  e.g. /model llama3.1:8b", theme)
         else:
             cfg.model = arg
             memory.reset()
@@ -971,12 +977,12 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
                 for name, content in prompts.items():
                     tbl.add_row(name, content)
                 console.print(Panel(tbl, title=f"[{theme.accent}]Prompt Library[/]", border_style=theme.border, box=box.ROUNDED))
-                _info("Usage: /prompt <name>", theme)
+                _info("  [dim]/prompt <name>  (loads the prompt into your input buffer)[/]", theme)
 
     # ── add (Context Injection) ───────────────────────────────────────────
     elif cmd == "/add":
         if not arg:
-            _warn("Usage: /add <file>", theme)
+            _info("  [dim]/add <file>  (injects file contents into context)[/]", theme)
         else:
             path = Path(arg)
             if not path.is_file():
@@ -1000,6 +1006,7 @@ def handle_slash(cmd_line: str, state: dict[str, Any]) -> bool:
             else:
                 _info("Saved sessions:\n  " + "\n  ".join(sessions), theme)
                 _info(f"Current active session: {cfg.active_session}", theme)
+                _info("  [dim]/session new  ·  /session <hash>  ·  /session delete <hash>  ·  /session delete all[/]", theme)
         elif arg == "new":
             import uuid
             new_hash = uuid.uuid4().hex[:8]

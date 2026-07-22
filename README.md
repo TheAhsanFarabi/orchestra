@@ -40,7 +40,7 @@ Orchestra relies on local models. Before running it, pull a model using Ollama.
 ```bash
 # Recommended for standard machines (4B - 8B parameters)
 ollama pull qwen3:4b-instruct
-ollama pull llama3
+ollama pull qwen2.5:7b
 ```
 
 ### 2. Installation

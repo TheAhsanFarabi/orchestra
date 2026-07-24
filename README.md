@@ -44,13 +44,19 @@ ollama pull qwen2.5:7b
 ```
 
 ### 2. Installation
-Clone the repository and set up a virtual environment:
+
+Clone the repository:
 
 ```bash
 git clone https://github.com/TheAhsanFarabi/orchestra.git
 cd orchestra
+```
 
-# Create and activate a virtual environment
+#### Linux
+
+Create and activate a virtual environment:
+
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 
@@ -58,6 +64,47 @@ source .venv/bin/activate
 pip install -e .
 ```
 
+#### macOS
+
+Create and activate a virtual environment:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install Orchestra and its dependencies
+pip install -e .
+```
+
+> **Note:** If your system uses `python` instead of `python3`, replace `python3` with `python`.
+
+#### Windows (Command Prompt)
+
+```cmd
+python -m venv .venv
+.venv\Scripts\activate.bat
+
+REM Install Orchestra and its dependencies
+pip install -e .
+```
+
+#### Windows (PowerShell)
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+
+# Install Orchestra and its dependencies
+pip install -e .
+```
+
+> **PowerShell Execution Policy:** If activation is blocked, run:
+>
+> ```powershell
+> Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+> ```
+>
+> Then activate the environment again.
 ---
 
 ## Usage

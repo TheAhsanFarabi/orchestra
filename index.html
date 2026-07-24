@@ -1152,174 +1152,266 @@
 
   <hr class="divider">
 
-  <!-- GET STARTED -->
-  <section class="section" id="start">
-    <div class="section-head">
-      <span class="section-tag">Get started</span>
-      <h2>Running in under five minutes.</h2>
-      <p>Python 3.10+ and Ollama are the only prerequisites. Everything else installs into a virtual environment.</p>
+ <!-- GET STARTED -->
+<section class="section" id="start">
+  <div class="section-head">
+    <span class="section-tag">Get started</span>
+    <h2>Running in under five minutes.</h2>
+    <p>Install Python 3.10+ and Ollama, then clone Orchestra and you're ready to go.</p>
+  </div>
+
+  <div class="install-shell">
+
+    <div class="os-tabs" role="tablist" aria-label="Operating system">
+      <button class="os-tab" data-os="mac" role="tab" aria-selected="false">
+        <!-- Apple Icon -->
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.24-.02-.32-.03-.015-.1-.045-.4-.045-.7 0-1.13.542-2.28 1.19-3.03.756-.86 2.05-1.5 3.06-1.55.03.15.03.34.03.44v.22zM20.51 17.36c-.5 1.15-.735 1.665-1.375 2.685-.895 1.42-2.155 3.185-3.715 3.2-1.385.015-1.74-.9-3.62-.885-1.88.01-2.27.9-3.655.885-1.56-.015-2.755-1.61-3.65-3.03-2.5-3.955-2.765-8.6-1.22-11.075.9-1.44 2.53-2.35 4.06-2.35 1.57 0 2.56.885 3.86.885 1.26 0 2.03-.885 3.86-.885 1.36 0 2.805.74 3.835 2.02-3.37 1.845-2.825 6.655.62 8.55z"/>
+        </svg>
+        macOS
+      </button>
+
+      <button class="os-tab" data-os="linux" role="tab" aria-selected="false">
+        <!-- Linux Icon -->
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12.5.5c-2 0-3.5 2-3.4 4.2.05 1-.15 1.7-.75 2.6-.6.9-1.55 1.9-1.55 3.5 0 1 .4 1.8.4 1.8s-1.9.7-2.4 2.4c-.3 1-.1 1.9.3 2.5-.3.3-.5.8-.4 1.3.15.75.9 1.05 1.6 1.2-.1.4 0 .85.3 1.2.6.7 1.9.7 2.9.35.5.5 1.3.85 2.4.85 1.05 0 1.85-.3 2.35-.8 1.05.4 2.45.4 3.05-.35.3-.35.4-.8.3-1.2.7-.15 1.45-.45 1.6-1.2.1-.5-.1-1-.4-1.3.4-.6.6-1.5.3-2.5-.5-1.7-2.4-2.4-2.4-2.4s.4-.8.4-1.8c0-1.6-.95-2.6-1.55-3.5-.6-.9-.8-1.6-.75-2.6.1-2.2-1.5-4.2-3.4-4.2h-.6z"/>
+        </svg>
+        Linux
+      </button>
+
+      <button class="os-tab" data-os="windows" role="tab" aria-selected="false">
+        <!-- Windows Icon -->
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 5.5l7.4-1v7.1H3V5.5zm8.4-1.1L21 3v8.5H11.4V4.4zM3 12.6h7.4v7.1L3 18.6v-6zm8.4 0H21V21l-9.6-1.3v-7.1z"/>
+        </svg>
+        Windows
+      </button>
     </div>
 
-    <div class="install-shell">
-      <div class="os-tabs" role="tablist" aria-label="Operating system">
-        <button class="os-tab" data-os="mac" role="tab" aria-selected="false">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.24-.02-.32-.03-.015-.1-.045-.4-.045-.7 0-1.13.542-2.28 1.19-3.03.756-.86 2.05-1.5 3.06-1.55.03.15.03.34.03.44v.22zM20.51 17.36c-.5 1.15-.735 1.665-1.375 2.685-.895 1.42-2.155 3.185-3.715 3.2-1.385.015-1.74-.9-3.62-.885-1.88.01-2.27.9-3.655.885-1.56-.015-2.755-1.61-3.65-3.03-2.5-3.955-2.765-8.6-1.22-11.075.9-1.44 2.53-2.35 4.06-2.35 1.57 0 2.56.885 3.86.885 1.26 0 2.03-.885 3.86-.885 1.36 0 2.805.74 3.835 2.02-3.37 1.845-2.825 6.655.62 8.55z"/></svg>
-          macOS
-        </button>
-        <button class="os-tab" data-os="linux" role="tab" aria-selected="false">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.5.5c-2 0-3.5 2-3.4 4.2.05 1-.15 1.7-.75 2.6-.6.9-1.55 1.9-1.55 3.5 0 1 .4 1.8.4 1.8s-1.9.7-2.4 2.4c-.3 1-.1 1.9.3 2.5-.3.3-.5.8-.4 1.3.15.75.9 1.05 1.6 1.2-.1.4 0 .85.3 1.2.6.7 1.9.7 2.9.35.5.5 1.3.85 2.4.85 1.05 0 1.85-.3 2.35-.8 1.05.4 2.45.4 3.05-.35.3-.35.4-.8.3-1.2.7-.15 1.45-.45 1.6-1.2.1-.5-.1-1-.4-1.3.4-.6.6-1.5.3-2.5-.5-1.7-2.4-2.4-2.4-2.4s.4-.8.4-1.8c0-1.6-.95-2.6-1.55-3.5-.6-.9-.8-1.6-.75-2.6.1-2.2-1.5-4.2-3.4-4.2h-.6z"/></svg>
-          Linux
-        </button>
-        <button class="os-tab" data-os="windows" role="tab" aria-selected="false">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5l7.4-1v7.1H3V5.5zm8.4-1.1L21 3v8.5H11.4V4.4zM3 12.6h7.4v7.1L3 18.6v-6zm8.4 0H21V21l-9.6-1.3v-7.1z"/></svg>
-          Windows (WSL)
-        </button>
+    <div class="install-panels">
+
+      <!-- macOS -->
+      <div class="install-panel" data-os-panel="mac">
+
+        <div class="install-steps">
+
+          <div class="install-step">
+            <div class="step-num">1</div>
+            <div class="install-step-body">
+              <div class="install-step-label">Install Ollama and download a model</div>
+
+              <div class="code-block">
+<div><span class="cmd-prefix">$</span> brew install ollama
+<span class="cmd-prefix">$</span> ollama pull qwen3:4b-instruct</div>
+
+<button class="copy-btn"
+data-copy="brew install ollama
+ollama pull qwen3:4b-instruct">copy</button>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="install-step">
+            <div class="step-num">2</div>
+
+            <div class="install-step-body">
+              <div class="install-step-label">Install Orchestra</div>
+
+              <div class="code-block">
+<div><span class="cmd-prefix">$</span> git clone https://github.com/TheAhsanFarabi/orchestra.git
+<span class="cmd-prefix">$</span> cd orchestra
+<span class="cmd-prefix">$</span> python3 -m venv .venv
+<span class="cmd-prefix">$</span> source .venv/bin/activate
+<span class="cmd-prefix">$</span> pip install -e .</div>
+
+<button class="copy-btn"
+data-copy="git clone https://github.com/TheAhsanFarabi/orchestra.git
+cd orchestra
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .">copy</button>
+
+              </div>
+            </div>
+          </div>
+
+          <div class="install-step">
+            <div class="step-num">3</div>
+
+            <div class="install-step-body">
+              <div class="install-step-label">Start Orchestra</div>
+
+              <div class="code-block">
+<div><span class="cmd-prefix">$</span> orchestra</div>
+
+<button class="copy-btn"
+data-copy="orchestra">copy</button>
+
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
 
-      <div class="install-panels">
+      <!-- Linux -->
+      <div class="install-panel" data-os-panel="linux">
 
-        <!-- macOS -->
-        <div class="install-panel" data-os-panel="mac">
-          <div class="install-steps">
-            <div class="install-step">
-              <div class="step-num">1</div>
-              <div class="install-step-body">
-                <div class="install-step-label">Pull a model — 4B–8B fits most laptops</div>
-                <div class="code-block"><div><span class="cmd-prefix">$</span> ollama pull qwen3:4b-instruct
-<span class="cmd-prefix">$</span> ollama pull qwen2.5:7b</div>
-                  <button class="copy-btn" data-copy="ollama pull qwen3:4b-instruct
-ollama pull qwen2.5:7b">copy</button>
-                </div>
-              </div>
-            </div>
-            <div class="install-step">
-              <div class="step-num">2</div>
-              <div class="install-step-body">
-                <div class="install-step-label">Clone and install</div>
-                <div class="code-block"><div><span class="cmd-prefix">$</span> git clone https://github.com/TheAhsanFarabi/orchestra.git
-<span class="cmd-prefix">$</span> cd orchestra
-<span class="cmd-prefix">$</span> python3 -m venv .venv &amp;&amp; source .venv/bin/activate
-<span class="cmd-prefix">$</span> pip install -e .</div>
-                  <button class="copy-btn" data-copy="git clone https://github.com/TheAhsanFarabi/orchestra.git
-cd orchestra
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e .">copy</button>
-                </div>
-              </div>
-            </div>
-            <div class="install-step">
-              <div class="step-num">3</div>
-              <div class="install-step-body">
-                <div class="install-step-label">Run it</div>
-                <div class="code-block"><div><span class="cmd-prefix">$</span> orchestra</div>
-                  <button class="copy-btn" data-copy="orchestra">copy</button>
-                </div>
+        <div class="install-steps">
+
+          <div class="install-step">
+            <div class="step-num">1</div>
+
+            <div class="install-step-body">
+              <div class="install-step-label">Install Ollama and download a model</div>
+
+              <div class="code-block">
+<div><span class="cmd-prefix">$</span> curl -fsSL https://ollama.com/install.sh | sh
+<span class="cmd-prefix">$</span> ollama pull qwen3:4b-instruct</div>
+
+<button class="copy-btn"
+data-copy="curl -fsSL https://ollama.com/install.sh | sh
+ollama pull qwen3:4b-instruct">copy</button>
+
               </div>
             </div>
           </div>
+
+          <div class="install-step">
+            <div class="step-num">2</div>
+
+            <div class="install-step-body">
+              <div class="install-step-label">Install Orchestra</div>
+
+              <div class="code-block">
+<div><span class="cmd-prefix">$</span> git clone https://github.com/TheAhsanFarabi/orchestra.git
+<span class="cmd-prefix">$</span> cd orchestra
+<span class="cmd-prefix">$</span> python3 -m venv .venv
+<span class="cmd-prefix">$</span> source .venv/bin/activate
+<span class="cmd-prefix">$</span> pip install -e .</div>
+
+<button class="copy-btn"
+data-copy="git clone https://github.com/TheAhsanFarabi/orchestra.git
+cd orchestra
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .">copy</button>
+
+              </div>
+            </div>
+          </div>
+
+          <div class="install-step">
+            <div class="step-num">3</div>
+
+            <div class="install-step-body">
+              <div class="install-step-label">Start Orchestra</div>
+
+              <div class="code-block">
+<div><span class="cmd-prefix">$</span> orchestra</div>
+
+<button class="copy-btn"
+data-copy="orchestra">copy</button>
+
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Windows -->
+      <div class="install-panel" data-os-panel="windows">
+
+        <div class="install-steps">
+
+          <div class="install-step">
+            <div class="step-num">1</div>
+
+            <div class="install-step-body">
+              <div class="install-step-label">Install Ollama and download a model</div>
+
+              <div class="code-block">
+<div><span class="cmd-prefix">&gt;</span> winget install Ollama.Ollama
+<span class="cmd-prefix">&gt;</span> ollama pull qwen3:4b-instruct</div>
+
+<button class="copy-btn"
+data-copy="winget install Ollama.Ollama
+ollama pull qwen3:4b-instruct">copy</button>
+
+              </div>
+            </div>
+          </div>
+
+          <div class="install-step">
+            <div class="step-num">2</div>
+
+            <div class="install-step-body">
+              <div class="install-step-label">Install Orchestra (PowerShell)</div>
+
+              <div class="code-block">
+<div><span class="cmd-prefix">&gt;</span> git clone https://github.com/TheAhsanFarabi/orchestra.git
+<span class="cmd-prefix">&gt;</span> cd orchestra
+<span class="cmd-prefix">&gt;</span> python -m venv .venv
+<span class="cmd-prefix">&gt;</span> .venv\Scripts\Activate.ps1
+<span class="cmd-prefix">&gt;</span> pip install -e .</div>
+
+<button class="copy-btn"
+data-copy="git clone https://github.com/TheAhsanFarabi/orchestra.git
+cd orchestra
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -e .">copy</button>
+
+              </div>
+            </div>
+          </div>
+
+          <div class="install-step">
+            <div class="step-num">3</div>
+
+            <div class="install-step-body">
+              <div class="install-step-label">Start Orchestra</div>
+
+              <div class="code-block">
+<div><span class="cmd-prefix">&gt;</span> orchestra</div>
+
+<button class="copy-btn"
+data-copy="orchestra">copy</button>
+
+              </div>
+            </div>
+          </div>
+
         </div>
 
-        <!-- Linux -->
-        <div class="install-panel" data-os-panel="linux">
-          <div class="install-steps">
-            <div class="install-step">
-              <div class="step-num">1</div>
-              <div class="install-step-body">
-                <div class="install-step-label">Install Ollama, then pull a model</div>
-                <div class="code-block"><div><span class="cmd-prefix">$</span> curl -fsSL https://ollama.com/install.sh | sh
-<span class="cmd-prefix">$</span> ollama pull qwen3:4b-instruct
-<span class="cmd-prefix">$</span> ollama pull qwen2.5:7b</div>
-                  <button class="copy-btn" data-copy="curl -fsSL https://ollama.com/install.sh | sh
-ollama pull qwen3:4b-instruct
-ollama pull qwen2.5:7b">copy</button>
-                </div>
-              </div>
-            </div>
-            <div class="install-step">
-              <div class="step-num">2</div>
-              <div class="install-step-body">
-                <div class="install-step-label">Clone and install</div>
-                <div class="code-block"><div><span class="cmd-prefix">$</span> git clone https://github.com/TheAhsanFarabi/orchestra.git
-<span class="cmd-prefix">$</span> cd orchestra
-<span class="cmd-prefix">$</span> python3 -m venv .venv &amp;&amp; source .venv/bin/activate
-<span class="cmd-prefix">$</span> pip install -e .</div>
-                  <button class="copy-btn" data-copy="git clone https://github.com/TheAhsanFarabi/orchestra.git
-cd orchestra
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e .">copy</button>
-                </div>
-              </div>
-            </div>
-            <div class="install-step">
-              <div class="step-num">3</div>
-              <div class="install-step-body">
-                <div class="install-step-label">Run it</div>
-                <div class="code-block"><div><span class="cmd-prefix">$</span> orchestra</div>
-                  <button class="copy-btn" data-copy="orchestra">copy</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Windows -->
-        <div class="install-panel" data-os-panel="windows">
-          <div class="install-steps">
-            <div class="install-step">
-              <div class="step-num">1</div>
-              <div class="install-step-body">
-                <div class="install-step-label">Inside WSL — install Ollama, then pull a model</div>
-                <div class="code-block"><div><span class="cmd-prefix">$</span> curl -fsSL https://ollama.com/install.sh | sh
-<span class="cmd-prefix">$</span> ollama pull qwen3:4b-instruct
-<span class="cmd-prefix">$</span> ollama pull qwen2.5:7b</div>
-                  <button class="copy-btn" data-copy="curl -fsSL https://ollama.com/install.sh | sh
-ollama pull qwen3:4b-instruct
-ollama pull qwen2.5:7b">copy</button>
-                </div>
-              </div>
-            </div>
-            <div class="install-step">
-              <div class="step-num">2</div>
-              <div class="install-step-body">
-                <div class="install-step-label">Clone and install</div>
-                <div class="code-block"><div><span class="cmd-prefix">$</span> git clone https://github.com/TheAhsanFarabi/orchestra.git
-<span class="cmd-prefix">$</span> cd orchestra
-<span class="cmd-prefix">$</span> python3 -m venv .venv &amp;&amp; source .venv/bin/activate
-<span class="cmd-prefix">$</span> pip install -e .</div>
-                  <button class="copy-btn" data-copy="git clone https://github.com/TheAhsanFarabi/orchestra.git
-cd orchestra
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e .">copy</button>
-                </div>
-              </div>
-            </div>
-            <div class="install-step">
-              <div class="step-num">3</div>
-              <div class="install-step-body">
-                <div class="install-step-label">Run it</div>
-                <div class="code-block"><div><span class="cmd-prefix">$</span> orchestra</div>
-                  <button class="copy-btn" data-copy="orchestra">copy</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="install-note">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-            Native Windows works too, but WSL gives you a real shell and avoids path issues with Ollama.
-          </div>
+        <div class="install-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 8v4M12 16h.01"/>
+          </svg>
+          If PowerShell blocks activation, run:
+          <code>Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass</code>
+          and activate the virtual environment again.
         </div>
 
       </div>
+
     </div>
 
-    <div class="badges">
-      <span class="badge"><span class="dot"></span>Self-hosted</span>
-      <span class="badge"><span class="dot"></span>Bring your own model</span>
-      <span class="badge"><span class="dot"></span>No telemetry</span>
-      <span class="badge"><span class="dot"></span>MIT licensed</span>
-    </div>
-  </section>
-  <hr class="divider">
+  </div>
+
+  <div class="badges">
+    <span class="badge"><span class="dot"></span>Local-first</span>
+    <span class="badge"><span class="dot"></span>Ollama Compatible</span>
+    <span class="badge"><span class="dot"></span>Privacy-first</span>
+    <span class="badge"><span class="dot"></span>MIT Licensed</span>
+  </div>
+
+</section>
+
+<hr class="divider">
 
   <!-- CREATOR'S NOTE -->
   <section class="section" id="creator-note">
